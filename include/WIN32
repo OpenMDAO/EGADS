@@ -1,0 +1,29 @@
+#
+LIBPTH = /link /LIBPATH:..\..\WIN32\lib /LIBPATH:$(CASROOT)\$(CASARCH)\lib
+LNKPTH = /LIBPATH:$(CASROOT)\$(CASARCH)\lib
+
+!if "$(CASREV)" == "6.3"
+
+# WINDOWS 32 bit using MSVS 7.1 (2003):
+INCS   = /I$(CASROOT)\inc
+DEFINE = /DWNT /DNDEBUG /D_CONSOLE /DWIN32 /DREVISION=$(CASREV)
+COPTS  = /O2 /MD
+CPPOPT = /O2 /MD /GX
+FOPTS  = /Ox /threads /recursive /libs:dll /traceback
+LIBS   = PTKernel.lib TKBool.lib TKBO.lib TKernel.lib TKFeat.lib TKGeomAlgo.lib TKMath.lib TKOffset.lib TKPCAF.lib TKPrim.lib TKPShape.lib TKService.lib TKTopAlgo.lib TKBRep.lib TKG2d.lib TKG3d.lib TKGeomBase.lib TKShHealing.lib TKSTEP.lib TKXSBase.lib TKIGES.lib TKFillet.lib
+GLIBS  = gv2003.lib glu32.lib opengl32.lib user32.lib gdi32.lib
+MCOMP  = echo
+!endif
+
+!if "$(CASREV)" == "6.5"
+
+# WINDOWS 32 bit using MSVS 9.0 (2008) for OCE:
+INCS   = /I$(CASROOT)\include\oce
+DEFINE = /DWNT /DNDEBUG /D_CONSOLE /DWIN32 /DREVISION=$(CASREV)
+COPTS  = /Ox /MD /D_CRT_SECURE_NO_DEPRECATE
+CPPOPT = /Ox /MD /EHsc /GR /D_CRT_SECURE_NO_DEPRECATE
+FOPTS  = /Ox /threads /recursive /libs:dll /traceback
+LIBS   = TKBool.lib TKernel.lib TKFeat.lib TKBO.lib TKGeomAlgo.lib TKMath.lib TKOffset.lib TKPrim.lib TKPShape.lib TKTopAlgo.lib TKBRep.lib TKG2d.lib TKG3d.lib TKGeomBase.lib TKShHealing.lib TKSTEP.lib TKSTEP209.lib TKSTEPBase.lib TKSTEPAttr.lib TKXSBase.lib TKIGES.lib TKFillet.lib PTKernel.lib
+GLIBS  = gv.lib glu32.lib opengl32.lib user32.lib gdi32.lib
+MCOMP  = mt
+!endif
