@@ -11,18 +11,33 @@ https://github.com/tpaviot/oce. Prebuilt versions are available at these sites
 for Windows using various versions of Visual Studio and MAC OSX at 64-bits. 
 Any other configuration must be built from source (unless you are using a 
 Debian variant of LINUX, such as Ubuntu, where there are available prebuilt 
-packages as part of the LINUX distributions).
+packages as part of the LINUX distribution).
 
-1.1 EGADS Distribution Layout
+1.1 EGADS Source Distribution Layout
 
 README.txt - this file
-trunk      - source components for EGADS
-DARWIN     - binary target for OSX
-DARWIN64   - binary target for OSX 64-bit
-LINUX      - binary target for LINUX
-LINUX64    - binary target for LINUX 64-bit
-WIN32      - binary target for 32-bit Windows
-WIN64      - binary target for 64-bit Windows
+docs       - documentation 
+include    - headers used by EGADS and those used to build EGADS apps
+src        - source files
+test       - test and example code
+
+1.2 EGADS Binary Distribution
+
+	Some test and example codes use graphics through a non-Open Source
+library: GV (the Geometry Viewer). The library is made available as part
+of the current EGADS distribution but will disappear in the future. A
+separate download (in the form of a g'zipped tarball) is required which 
+when unpacked also provides a target for the EGADS build. The tar image 
+"EGADSbin.tgz" contains the following directories:
+
+DARWIN   - binary target for OSX
+DARWIN64 - binary target for OSX 64-bit
+LINUX    - binary target for LINUX
+LINUX64  - binary target for LINUX 64-bit
+WIN32    - binary target for 32-bit Windows
+WIN64    - binary target for 64-bit Windows
+
+Each directory has subdirectories "lib", "obj" and "test".
 
 
 2. Building EGADS
@@ -40,6 +55,9 @@ These are driven by a small number of environment variables as seen below.
 			LINUX64  - LINUX at 64-bits
 			WIN32    - XP, Vista or Windows7 at 32-bits
 			WIN64    - XP, Vista or Windows7 at 64-bits
+        GEM_BLOC - the build location (path) for the appropriate binary 
+		   target. This must must contain the "lib", "obj" and 
+		   "test" subdirectories for GEM_ARCH.
 	CASROOT  - the install path to find OpenCASCADE (which typically has
 		   a "bin", "inc", "lib" and "src" subdirectories). For 
 		   Debian installs this may be "/usr/include/opencascade".
@@ -54,30 +72,28 @@ These are driven by a small number of environment variables as seen below.
 	Both gfortran & ifort (the Intel FORTRAN compiler) are supported
 for LINUX and the MAC, but only ifort support is available under Windows.
 The build of EGADS is independent of the FORTRAN compiler used (if any).
-The test codes (in the "test" subdirectory) that uses FORTRAN must have
-a compiler. The assumption is that the complier is gfortran (unless
+The test codes (in the "test"  EGADS directory) that use FORTRAN must 
+have a compiler. The assumption is that the complier is gfortran (unless
 Windows). This can be simply modified by editing the configuration files
-in the "include" subdirectory. These files have the name used by the
-environment variable GEM_ARCH. There are 2 sets of assignments for both
-FCOMP and FOPTS where the one for ifort is commented out.
+in the EGADS "include" subdirectory. These files have the name used by 
+the environment variable GEM_ARCH. There are 2 sets of assignments for 
+both FCOMP and FOPTS where the one for ifort is commented out.
 
 2.3 The Build
 
-	Once the above is all set, just go into the "trunk/src" subdirectory 
+	Once the above is all set, just go into the EGADS "src" directory 
 and type: make.
 	For Windows, there are no MSVS project files. It is assumed that a
 "command window" is open and the environment has been setup for the 
-appropriate compiler(s).
+appropriate compiler(s). There is a "make.bat" that executes "nmake".
 
 2.4 The Tests
 
 	The small test examples can be made by executing "make" (or "nmake"
-when using Visual Studio) from within the "trunk/test" subdirectory. This 
-can be simply done by: "make -f XYZ.make" (or "nmake -f XYZ.mak" under 
-Windows). Where XYZ is the name of any of the tests.
-	Note that some testors have graphics and use a non-Open Source
-library GV (the Geometry Viewer). The library is made available as part
-of the current EGADS distribution but will disappear in the future.
+when using Visual Studio) from within the "test" EGADS directory. This 
+can be simply done by: "make -f XYZ.make" (or "nmake -f XYZ.mak" at a
+command prompt under Windows). Where XYZ is the name of any of the 
+test/example codes.
 
 2.5 Windows & Visual Studio
 
@@ -109,9 +125,7 @@ environment variable (but the name differs depending on the OS):
 For example, this can be done on Windows at the "command window" or for a
 "bat" file with the command:
 
-  % set PATH=%CASROOT%\%CASARCH%\bin;D:\EGADS\WIN32\lib;%PATH%
-
-where, in this case, D:\EGADS is the install point for EGADS itself.
+  % set PATH=%CASROOT%\%CASARCH%\bin;%GEM_BLOC%\lib;%PATH%
 
 
 4. Coordinates:

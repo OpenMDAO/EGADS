@@ -1,8 +1,14 @@
 #
 !include ..\include\$(GEM_ARCH)
-IDIR  = ..\..\trunk\include
+SDIR  = $(MAKEDIR)
+IDIR  = $(SDIR)\..\include
+!IFNDEF GEM_BLOC
 ODIR  = ..\..\$(GEM_ARCH)\obj
 LDIR  = ..\..\$(GEM_ARCH)\lib
+!ELSE
+ODIR  = $(GEM_BLOC)\obj
+LDIR  = $(GEM_BLOC)\lib
+!ENDIF
 
 OBJSP = egadsGeom.obj egadsHLevel.obj egadsTopo.obj  egadsCopy.obj egadsIO.obj
 OBJS  = egadsBase.obj egadsMemory.obj egadsAttrs.obj egadsTess.obj \
@@ -14,11 +20,11 @@ default:	start ..\lib\egads.dll ..\lib\egadstatic.lib ..\lib\fgads.lib end
 
 start:
 	cd $(ODIR)
-	xcopy ..\..\trunk\src\*.c   /Q
-	xcopy ..\..\trunk\src\*.cpp /Q
-	xcopy ..\..\trunk\src\*.h   /Q
-	xcopy ..\..\trunk\src\*.rc  /Q
-	xcopy ..\..\trunk\src\*.def /Q
+	xcopy $(SDIR)\*.c   /Q /Y
+	xcopy $(SDIR)\*.cpp /Q /Y
+	xcopy $(SDIR)\*.h   /Q /Y
+	xcopy $(SDIR)\*.rc  /Q /Y
+	xcopy $(SDIR)\*.def /Q /Y
 
 ..\lib\egadstatic.lib:	$(OBJSP) $(OBJS)
 	-del ..\lib\egadstatic.lib
@@ -55,17 +61,17 @@ $(OBJSP):	$(IDIR)\egadsErrors.h egadsOCC.h egadsInternals.h \
 
 end:
 	-del *.cpp *.c *.h *.rc *def *.manifest
-	cd ..\..\trunk\src
+	cd $(SDIR)
 
 clean:
 	cd $(ODIR)
 	-del $(FOBJS) $(OBJSP) $(OBJS)
-	cd ..\..\trunk\src
+	cd $(SDIR)
 
 cleanall:
 	-del $(LDIR)\egads.dll $(LDIR)\egads.lib $(LDIR)\egads.exp
-	-del $(LDIR)\egads.res
-	-del $(LDIR)\egadsstatic.lib $(LDIR)\fgads.lib
+	-del $(LDIR)\egads.res $(LDIR)\egads.dll.manifest
+	-del $(LDIR)\egadstatic.lib $(LDIR)\fgads.lib
 	cd $(ODIR)
 	-del $(FOBJS) $(OBJSP) $(OBJS)
-	cd ..\..\trunk\src
+	cd $(SDIR)

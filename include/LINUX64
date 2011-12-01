@@ -12,7 +12,7 @@ endif
 
 DEFINE = -DREVISION=$(CASREV)
 CC     = g++ -m64 -g
-CPPOPT = -O -DLIN -DLININTEL -DHAVE_IOSTREAM -DHAVE_IOSTREAM_H -DHAVE_LIMITS_H -fPIC -Wno-write-strings -Wno-unused-result
+CPPOPT = -O -DLIN -DLININTEL -DHAVE_IOSTREAM -DHAVE_IOSTREAM_H -DHAVE_LIMITS_H -fPIC -Wno-write-strings -Wno-unused-result -D_OCC64
 CCOMP  = gcc -m64 -g
 COPTS  = -O -fno-unit-at-a-time -fPIC
 FCOMP  = gfortran -m64 -g
