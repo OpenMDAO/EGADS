@@ -2243,7 +2243,7 @@ EG_tessellate(triStruct *ts)
 
     if (ts->accum < ts->dotnrm) {
       ts->phase = 1;
-      k = count = lsplit = 0;
+      count = lsplit = 0;
       for (i = 0; i < ts->ntris; i++) EG_fillMid(i, NOTFILLED, ts);
       do {
         split  = EG_addFacetNorm(ts);
@@ -2270,11 +2270,10 @@ EG_tessellate(triStruct *ts)
           lsplit = split;
         }
 #ifdef REPORT
-        printf(" Phase 1: dotN = %le,  UVang = %le,  split = %d\n",
-               ts->accum, lang, split);
+        printf(" Phase 1: dotN = %le,  UVang = %le,  split = %d,  %d\n",
+               ts->accum, lang, split, count);
 #endif
         if (count > 6) break;
-        k++;
       } while (split != 0);
     }
 
@@ -2285,7 +2284,7 @@ EG_tessellate(triStruct *ts)
       ts->phase = 2;
       if (last == 0)
         for (i = 0; i < ts->ntris; i++) EG_fillMid(i, NOTFILLED, ts);
-      k = count = lsplit = 0;
+      count = lsplit = 0;
       do {
         split  = EG_addFacetDist(ts);
         laccum = ts->accum;
@@ -2315,7 +2314,6 @@ EG_tessellate(triStruct *ts)
                ts->accum, lang, split);
 #endif
         if (count > 6) break;
-        k++;
       } while (split != 0);
     }
 #ifdef DEBUG

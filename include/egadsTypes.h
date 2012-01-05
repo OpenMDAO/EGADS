@@ -15,8 +15,8 @@
 
 
 #define EGADSMAJOR     0
-#define EGADSMINOR    86
-#define EGADSPROP     EGADSprop: Revision 0.86
+#define EGADSMINOR    87
+#define EGADSPROP     EGADSprop: Revision 0.87
 
 #define MAGIC      98789
 
