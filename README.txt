@@ -27,7 +27,8 @@ test       - test and example code
 library: GV (the Geometry Viewer). The library is made available as part
 of the current EGADS distribution but will disappear in the future. A
 separate download (in the form of a g'zipped tarball) is required which 
-when unpacked also provides a target for the EGADS build. The tar image 
+when unpacked also provides a target for the EGADS build. The tarball is
+located at http://openmdao.org/releases/misc/EGADSbin.tgz. The tar image 
 "EGADSbin.tgz" contains the following directories:
 
 DARWIN   - binary target for OSX
@@ -138,8 +139,3 @@ For an OSX/OCE install (in the default location) it may be:
   % setenv DYLD_LIBRARY_PATH /usr/local/lib:$DYLD_LIBRARY_PATH
 
 
-4. Coordinates:
-
-	Bob Haimes
-	(617) 253-7518
-	haimes@mit.edu
