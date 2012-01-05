@@ -22,7 +22,7 @@ src        - source files
 test       - test and example code
 
 1.2 EGADS Binary Distribution
-
+    
 	Some test and example codes use graphics through a non-Open Source
 library: GV (the Geometry Viewer). The library is made available as part
 of the current EGADS distribution but will disappear in the future. A
