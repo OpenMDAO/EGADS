@@ -61,5 +61,5 @@ clean:
 	(cd $(ODIR); rm $(FOBJS) $(OBJSP) $(OBJS) )
 
 cleanall:
-	-rm $(LDIR)/libegads.a $(LDIR)/libfgads.a
+	-rm $(LDIR)/libegads* $(LDIR)/libfgads.a
 	(cd $(ODIR); rm $(FOBJS) $(OBJSP) $(OBJS) )

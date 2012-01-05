@@ -1,5 +1,5 @@
 #
-!include ../include/$(GEM_ARCH)
+!include ..\include\$(GEM_ARCH)
 SDIR = $(MAKEDIR)
 IDIR = $(SDIR)\..\include
 !IFNDEF GEM_BLOC
