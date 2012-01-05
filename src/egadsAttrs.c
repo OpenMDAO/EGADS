@@ -194,6 +194,7 @@ EG_attributeDel(egObject *obj, /*@null@*/ const char *name)
         EG_free(attrs->attrs[i].vals.string);
       }
     }
+    EG_free(attrs->attrs);
     EG_free(attrs);
 
   } else {

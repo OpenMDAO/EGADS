@@ -1,4 +1,4 @@
-			EGADS REVISION 0.86 DISTRIBUTION
+			EGADS REVISION 0.87 DISTRIBUTION
 		  Electronic Geometry Aircraft Design System
 
 
@@ -61,9 +61,14 @@ These are driven by a small number of environment variables as seen below.
 	CASROOT  - the install path to find OpenCASCADE (which typically has
 		   a "bin", "inc", "lib" and "src" subdirectories). For 
 		   Debian installs this may be "/usr/include/opencascade".
+		   For MAC OSX OCE with the install in the default location
+		   this variable is set to "/usr/local".
 	CASARCH  - this is the string that OpenCASCADE internally uses for
 		   the system architecture and is usually a subdirectory
-		   of CASROOT. On Debian machines this is usually "Linux".
+		   of CASROOT. For OCE distributions supporting a single
+		   architecture this subdirectory may not exist (in this
+		   case set the variable to "."). On Debian machines this 
+		   variable is usually "Linux".
 	CASREV   - the major.minor revision of OpenCASCADE. For example:
 		   "6.3" or "6.5".
 
@@ -126,6 +131,11 @@ For example, this can be done on Windows at the "command window" or for a
 "bat" file with the command:
 
   % set PATH=%CASROOT%\%CASARCH%\bin;%GEM_BLOC%\lib;%PATH%
+
+For an OSX/OCE install (in the default location) it may be:
+
+  % export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH  -or-
+  % setenv DYLD_LIBRARY_PATH /usr/local/lib:$DYLD_LIBRARY_PATH
 
 
 4. Coordinates:

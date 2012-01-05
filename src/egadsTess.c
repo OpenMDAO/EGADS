@@ -94,6 +94,7 @@ static void
 EG_checkTriangulation(egTessel *btess)
 {
   int i, j, n, n1, n2, iface, itri, ie, iv, side;
+  static int sides[3][2] = {1,2, 2,0, 0,1};
 
   for (iface = 1; iface <= btess->nFace; iface++) {
     for (itri = 1; itri <= btess->tess2d[iface-1].ntris; itri++) {
@@ -972,8 +973,8 @@ EG_updateTris(triStruct *ts, egTessel *btess, int fIndex)
       ptype[i]  = 0;
       pindex[i] = ts->verts[i].index;
     } else if (ts->verts[i].type == EDGE) {
-      ptype[i]  = ts->verts[i].edge;
-      pindex[i] = ts->verts[i].index;
+      ptype[i]  = ts->verts[i].index;
+      pindex[i] = ts->verts[i].edge;
     }
   }
   btess->tess2d[fIndex-1].xyz    = xyz;
@@ -1363,7 +1364,7 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
         }
       }
 #ifdef DEBUG
-      printf("  **** End Edge %d ****\n", k+1);
+      printf("  **** End Edge %d sen = %d ****\n", k+1, sen);
 #endif
       ntot += npts-1;
     }
@@ -1608,6 +1609,11 @@ EG_tessEdges(egTessel *btess)
 
   /* do the Edges -- one at a time */
 
+  dist = fabs(btess->params[2]);
+  if (dist > 30.0) dist = 30.0;
+  if (dist <  0.5) dist =  0.5;
+  dotnrm = cos(PI*dist/180.0);
+
   for (j = 0; j < nedge; j++) {
     stat = EG_getTopology(edges[j], &geom, &oclass, &mtype, limits,
                           &nnode, &nodes, &senses);
@@ -1740,30 +1746,26 @@ EG_tessEdges(egTessel *btess)
       
       /* angle criteria - aux is normalized tangent */
       if (btess->params[2] != 0.0) {
-        dist = fabs(btess->params[2]);
-        if (dist > 30.0) dist = 30.0;
-        if (dist <  0.5) dist =  0.5;
-        dotnrm = cos(PI*dist/180.0);
-        stat   = EG_evaluate(edges[j], &t[0], result);
+        stat = EG_evaluate(edges[j], &t[0], result);
         if (stat != EGADS_SUCCESS) {
           EG_free(faces);
           EG_free(edges);
           return stat;
         }
-        dist   = sqrt(result[3]*result[3] + result[4]*result[4] +
-                      result[5]*result[5]);
+        dist = sqrt(result[3]*result[3] + result[4]*result[4] +
+                    result[5]*result[5]);
         if (dist == 0) dist = 1.0;
         aux[0][0] = result[3]/dist;
         aux[0][1] = result[4]/dist;
         aux[0][2] = result[5]/dist;
-        stat   = EG_evaluate(edges[j], &t[npts-1], result);
+        stat = EG_evaluate(edges[j], &t[npts-1], result);
         if (stat != EGADS_SUCCESS) {
           EG_free(faces);
           EG_free(edges);
           return stat;
         }
-        dist   = sqrt(result[3]*result[3] + result[4]*result[4] +
-                      result[5]*result[5]);
+        dist = sqrt(result[3]*result[3] + result[4]*result[4] +
+                    result[5]*result[5]);
         if (dist == 0) dist = 1.0;
         aux[npts-1][0] = result[3]/dist;
         aux[npts-1][1] = result[4]/dist;

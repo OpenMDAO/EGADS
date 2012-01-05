@@ -1,6 +1,6 @@
 #MAC OS X 10.5 & up -- 32 bit:
 #
-EGREV   = 0.86
+EGREV   = 0.87
 
 INCS    = -I$(CASROOT)/inc -I$(CASROOT) -I../include
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L../../DARWIN/lib
