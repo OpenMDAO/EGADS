@@ -5,7 +5,7 @@
  *
  *             Function Prototypes
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -131,6 +131,8 @@ __ProtoExt__ int  EG_makeTessGeom( ego obj, double *params, int *sizes,
 __ProtoExt__ int  EG_getTessGeom( const ego tess, int *sizes, double **xyz );
 
 __ProtoExt__ int  EG_makeTessBody( ego object, double *params, ego *tess );
+__ProtoExt__ int  EG_remakeTess( ego tess, int nobj, ego *objs, 
+                                 double *params );
 __ProtoExt__ int  EG_getTessEdge( const ego tess, int eIndex, int *len, 
                                   const double **xyz, const double **t );
 __ProtoExt__ int  EG_getTessFace( const ego tess, int fIndex, int *len, 

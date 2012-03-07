@@ -3,7 +3,7 @@
  *
  *             Enhance the Tessellation of a Face
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -16,8 +16,6 @@
 
 #include "egadsTris.h"
 
-
-#define STATS
 
 #define FLOODEPTH        6	/* flood depth for marking tri neighbors */
 #define NOTFILLED       -1      /* Not yet filled flag */
@@ -2025,12 +2023,10 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
 /* fills the tessellate structure for the Face */
 
 int
-EG_tessellate(triStruct *ts)
+EG_tessellate(int outLevel, triStruct *ts)
 {
-#ifdef STATS
   int    n0, n1, n2, n3, stat[3];
   double dot, xvec[3];
-#endif
   int    i, j, k, l, stri, i0, i1, last, split, count, lsplit;
   int    eg_split, sideMid;
   double result[18], trange[2], laccum, dist, lang, maxlen2;
@@ -2320,54 +2316,54 @@ EG_tessellate(triStruct *ts)
     EG_checkTess(ts);
 #endif
 
-#ifdef STATS
-    dot = 1.0;
-    for (stat[0] = stat[1] = i = 0; i < ts->ntris; i++)
-      for (j = 0; j < 3; j++) {
-        if (ts->tris[i].neighbors[j] < i) continue;
-        k    = ts->tris[i].neighbors[j]-1;
-        n0   = ts->tris[i].indices[j];
-        n1   = ts->tris[i].indices[sides[j][0]];
-        n2   = ts->tris[i].indices[sides[j][1]];
-        n3   = ts->tris[k].indices[0] + ts->tris[k].indices[1] +
-               ts->tris[k].indices[2] - n1 - n2;
-        dist = EG_dotNorm(ts->verts[n0-1].xyz, ts->verts[n1-1].xyz,
-                          ts->verts[n2-1].xyz, ts->verts[n3-1].xyz);
-        dot  = MIN(dot, dist);
-        if (dist >= ts->dotnrm) {
-          stat[0]++;
-        } else {
-          stat[1]++;
+    if (outLevel > 1) {
+      dot = 1.0;
+      for (stat[0] = stat[1] = i = 0; i < ts->ntris; i++)
+        for (j = 0; j < 3; j++) {
+          if (ts->tris[i].neighbors[j] < i) continue;
+          k    = ts->tris[i].neighbors[j]-1;
+          n0   = ts->tris[i].indices[j];
+          n1   = ts->tris[i].indices[sides[j][0]];
+          n2   = ts->tris[i].indices[sides[j][1]];
+          n3   = ts->tris[k].indices[0] + ts->tris[k].indices[1] +
+                 ts->tris[k].indices[2] - n1 - n2;
+          dist = EG_dotNorm(ts->verts[n0-1].xyz, ts->verts[n1-1].xyz,
+                            ts->verts[n2-1].xyz, ts->verts[n3-1].xyz);
+          dot  = MIN(dot, dist);
+          if (dist >= ts->dotnrm) {
+            stat[0]++;
+          } else {
+            stat[1]++;
+          }
         }
-      }
-    printf("   Min angle     = %le (%le), OK = %d, too big = %d\n",
-           dot, ts->dotnrm, stat[0], stat[1]);
+      printf("   Min angle     = %le (%le), OK = %d, too big = %d\n",
+             dot, ts->dotnrm, stat[0], stat[1]);
 
-    if (ts->chord > 0.0) {
-      dist = 0.0;
-      for (stat[0] = stat[1] = stat[2] = i = 0; i < ts->ntris; i++) {
-        n0      = ts->tris[i].indices[0]-1;
-        n1      = ts->tris[i].indices[1]-1;
-        n2      = ts->tris[i].indices[2]-1;
-        xvec[0] = (ts->verts[n0].xyz[0] + ts->verts[n1].xyz[0] +
-                   ts->verts[n2].xyz[0]) / 3.0;
-        xvec[1] = (ts->verts[n0].xyz[1] + ts->verts[n1].xyz[1] +
-                   ts->verts[n2].xyz[1]) / 3.0;
-        xvec[2] = (ts->verts[n0].xyz[2] + ts->verts[n1].xyz[2] +
-                   ts->verts[n2].xyz[2]) / 3.0;
-        dot     = DIST2(xvec, ts->tris[i].mid);
-        dist    = MAX(dist, dot);
-        if (dot <= ts->chord*ts->chord) {
-          stat[1]++;
-        } else {
-          stat[2]++;
-          if (ts->tris[i].close != 0) stat[0]++;
+      if (ts->chord > 0.0) {
+        dist = 0.0;
+        for (stat[0] = stat[1] = stat[2] = i = 0; i < ts->ntris; i++) {
+          n0      = ts->tris[i].indices[0]-1;
+          n1      = ts->tris[i].indices[1]-1;
+          n2      = ts->tris[i].indices[2]-1;
+          xvec[0] = (ts->verts[n0].xyz[0] + ts->verts[n1].xyz[0] +
+                     ts->verts[n2].xyz[0]) / 3.0;
+          xvec[1] = (ts->verts[n0].xyz[1] + ts->verts[n1].xyz[1] +
+                     ts->verts[n2].xyz[1]) / 3.0;
+          xvec[2] = (ts->verts[n0].xyz[2] + ts->verts[n1].xyz[2] +
+                     ts->verts[n2].xyz[2]) / 3.0;
+          dot     = DIST2(xvec, ts->tris[i].mid);
+          dist    = MAX(dist, dot);
+          if (dot <= ts->chord*ts->chord) {
+            stat[1]++;
+          } else {
+            stat[2]++;
+            if (ts->tris[i].close != 0) stat[0]++;
+          }
         }
+        printf("   Max deviation = %le (%le), OK = %d, 2Big = %d (2Close = %d)\n",
+               sqrt(dist), ts->chord, stat[1], stat[2], stat[0]);
       }
-      printf("   Max deviation = %le (%le), OK = %d, 2Big = %d (2Close = %d)\n",
-             sqrt(dist), ts->chord, stat[1], stat[2], stat[0]);
-    }
-#endif
+   }
 
     /* final clean-up */
 
@@ -2412,8 +2408,7 @@ EG_tessellate(triStruct *ts)
 
   /* report stuff and finish up */
 
-#ifdef STATS
-  if (ts->maxlen > 0.0) {
+  if ((outLevel > 1) && (ts->maxlen > 0.0)) {
     dist = 0.0;
     for (k = l = i = 0; i < ts->ntris; i++)
       for (j = 0; j < 3; j++) {
@@ -2432,20 +2427,32 @@ EG_tessellate(triStruct *ts)
     printf("   Max Side Len  = %le (%le), OK = %d, too big = %d\n",
            sqrt(dist), ts->maxlen, k, l);
   }
-#endif
 
-#if defined(REPORT) || defined(STATS)
-  printf("Face %d: npts = %d,  ntris = %d\n", 
-         ts->fIndex, ts->nverts, ts->ntris);
-  if (ts->planar == 0) {
-    if ((ts->accum < -0.1) || (lang > MAXANG)) 
-      printf("           **Tessellation problem**  %le  %le\n",
-             lang, ts->accum);
+  if (outLevel > 1) {
+    printf("Face %d: npts = %d,  ntris = %d\n", 
+           ts->fIndex, ts->nverts, ts->ntris);
+    if (ts->planar == 0) {
+      if ((ts->accum < -0.1) || (lang > MAXANG)) 
+        printf("           **Tessellation problem**  %le  %le\n",
+               lang, ts->accum);
+    } else {
+      if (lang > MAXANG) 
+        printf("           **Tessellation problem**  %le\n", lang);
+    }
   } else {
-    if (lang > MAXANG) 
-      printf("           **Tessellation problem**  %le\n", lang);
-  }
+#ifdef REPORT
+    printf("Face %d: npts = %d,  ntris = %d\n", 
+           ts->fIndex, ts->nverts, ts->ntris);
+    if (ts->planar == 0) {
+      if ((ts->accum < -0.1) || (lang > MAXANG)) 
+        printf("           **Tessellation problem**  %le  %le\n",
+               lang, ts->accum);
+    } else {
+      if (lang > MAXANG) 
+        printf("           **Tessellation problem**  %le\n", lang);
+    }
 #endif
+  }
 
   /* perform the last set of swaps based on physical coordinates */
   if ((ts->planar == 0) && (ts->ntris > 2*stri))

@@ -133,7 +133,14 @@ int main(int argc, char *argv[])
       printf(" EG_makeTessBody %d = %d\n", ibody, stat);
       continue;
     }
-    
+#ifdef REMAKE
+    params[0] *= 0.5;
+    stat = EG_remakeTess(bodydata[ibody].tess, 1, bodydata[ibody].edges,
+                         params);
+    printf(" EG_remakeTess = %d\n", stat);
+    params[0] *= 2.0;
+#endif
+
     /* split any Edges? */
     do {
       printf("\n Split Edge on Body %d [1-%d]/0 done: ",

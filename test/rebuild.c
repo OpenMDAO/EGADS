@@ -3,7 +3,7 @@
  *
  *             ReBuild Topology
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -148,7 +148,7 @@ parseOut(int level, ego object, int sense)
           printf("%s  angle = %lf, radius = %lf\n", 
                  surfType[mtype-1], rvec[12], rvec[13]);
           break;
-        case CYLINDER:
+        case CYLINDRICAL:
           printf("%s  radius = %lf\n", surfType[mtype-1], rvec[12]);
           break;
         case TOROIDAL:

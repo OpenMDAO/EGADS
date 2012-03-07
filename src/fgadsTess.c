@@ -3,7 +3,7 @@
  *
  *             FORTRAN Bindings for Tessellation Functions
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -23,6 +23,8 @@
   extern int EG_getTessGeom(const egObject *tess, int *sizes, double **xyz);
 
   extern int EG_makeTessBody(egObject *object, double *params, egObject **tess);
+  extern int EG_remakeTess(egObject *tess, int nobj, egObject **objs, 
+                           double *params);
   extern int EG_getTessEdge(const egObject *tess, int index, int *len, 
                             const double **xyz, const double **t);
   extern int EG_getTessFace(const egObject *tess, int index, int *len, 
@@ -92,6 +94,29 @@ ig_maketessbody_(INT8 *obj, double *params, INT8 *itess)
   object = (egObject *) *obj;
   stat   = EG_makeTessBody(object, params, &tess); 
   if (stat == EGADS_SUCCESS) *itess = (INT8) tess;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_REMAKETESS (INT8 *itess, int *nobj, INT8 *objs, double *params)  
+#else
+ig_remaketess_(INT8 *itess, int *nobj, INT8 *objs, double *params)
+#endif
+{
+  int      i, stat;
+  egObject *tess, **objects = NULL;
+
+  tess = (egObject *) *itess;
+  if (*nobj > 0) {
+    objects = (egObject **) EG_alloc(*nobj*sizeof(egObject *));
+    if (objects == NULL) return EGADS_MALLOC;
+    for (i = 0; i < *nobj; i++)
+      objects[i] = (egObject *) objs[i];
+  }
+  stat = EG_remakeTess(tess, *nobj, objects, params); 
+  if (objects != NULL) EG_free(objects);
   return stat;
 }
 

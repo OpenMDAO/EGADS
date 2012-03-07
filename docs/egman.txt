@@ -727,11 +727,35 @@ parms   	a set of 3 parameters that drive the EDGE discretization and the
 		for any length. The second is a curvature-based value that looks 
 		locally at the deviation between the discrete object and the underlying
 		geometry. Any deviation larger than the input value will cause the
-		tessellation to be enhanced in those regions. The third is used only for 
-		the FACE triangulation. It is the maximum interior dihedral angle (in 
-		degrees) between triangle facets (a zero ignores this phase).
+		tessellation to be enhanced in those regions. The third is		the maximum interior dihedral angle (in degrees) between triangle		facets (or Edge segment tangents for a WIREBODY tessellation),		note that a zero ignores this phase.
 tess       	the resultant TESSELLATION object where each EDGE in the BODY 
 		is discretized and each FACE is triangulated.
+
+--------------------------------------------------------------------------------------------
+--remakeTess
+
+icode = EG_remakeTess(ego tess, int nobj, ego *facedg, double *parms)
+icode = IG_remakeTess(I*8 tess, I*4 nobj, I*8  facedg, R*8     parms)
+
+Redoes the discretization for specified objects from within a BODY TESSELLATION.
+
+tess		the TESSELLATION object to modify.
+nobj		number of objects in the face/edge list.
+facedg		list of FACE and/or EDGE objects from within the BODY used to create the
+		TESSELLATION object. First all specified Edges are rediscretized. Then
+		any listed Face and the Faces touched by the retessellated Edges are
+		retriangulated. Note that Quad Patches associated with Faces whose Edges
+		were redone will be removed.
+parms   	a set of 3 parameters that drive the EDGE discretization and the
+		FACE triangulation. The first is the maximum length of an EDGE
+		segment or triangle side (in physical space). A zero is flag that allows
+		for any length. The second is a curvature-based value that looks 
+		locally at the deviation between the discrete object and the underlying
+		geometry. Any deviation larger than the input value will cause the
+		tessellation to be enhanced in those regions. The third is
+		the maximum interior dihedral angle (in degrees) between triangle
+		facets (or Edge segment tangents for a WIREBODY tessellation),
+		note that a zero ignores this phase.
 
 --------------------------------------------------------------------------------------------
 --getTessEdge

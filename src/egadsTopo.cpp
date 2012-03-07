@@ -3,7 +3,7 @@
  *
  *             Topology Functions
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -2110,6 +2110,7 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
     }
     for (i = 0; i < nChildren; i++) 
       EG_attriBodyDup(children[i], obj);
+    EG_referenceObject(obj, context);
  
   } else {
   
@@ -2745,7 +2746,7 @@ EG_makeSolidBody(egObject *context, int stypx, const double *data,
   outLevel = EG_outLevel(context);
   stype    = abs(stypx);
 
-  if ((stype < 1) || (stype > 5)) {
+  if ((stype < BOX) || (stype > TORUS)) {
     if (outLevel > 0)
       printf(" EGADS Error: stype = %d (EG_makeSolidBody)!\n", stype);
     return EGADS_RANGERR;
@@ -2753,22 +2754,22 @@ EG_makeSolidBody(egObject *context, int stypx, const double *data,
   
   switch (stype) {
 
-  /* box */
-  case 1:
+  /* box=1 */
+  case BOX:
     solid = (TopoDS_Solid) 
             BRepPrimAPI_MakeBox(gp_Pnt(data[0], data[1], data[2]),
                                 data[3], data[4], data[5]);
     break;
 
-  /* sphere */
-  case 2:
+  /* sphere=2 */
+  case SPHERE:
     solid = (TopoDS_Solid)
             BRepPrimAPI_MakeSphere(gp_Pnt(data[0], data[1], data[2]), 
                                    data[3]);
     break;
 
-  /* cone */
-  case 3:
+  /* cone=3 */
+  case CONE:
     height = sqrt( (data[3]-data[0])*(data[3]-data[0]) +
                    (data[4]-data[1])*(data[4]-data[1]) +
                    (data[5]-data[2])*(data[5]-data[2]) );
@@ -2779,8 +2780,8 @@ EG_makeSolidBody(egObject *context, int stypx, const double *data,
                                  0.0, data[6], height);
     break;
     
-  /* cylinder */
-  case 4:
+  /* cylinder=4 */
+  case CYLINDER:
     height = sqrt( (data[3]-data[0])*(data[3]-data[0]) +
                    (data[4]-data[1])*(data[4]-data[1]) +
                    (data[5]-data[2])*(data[5]-data[2]) );
@@ -2791,8 +2792,8 @@ EG_makeSolidBody(egObject *context, int stypx, const double *data,
                                      data[6], height);
     break;
 
-  /* torus */
-  case 5:
+  /* torus=5 */
+  case TORUS:
     solid = (TopoDS_Solid)
             BRepPrimAPI_MakeTorus(gp_Ax2(gp_Pnt(data[0], data[1], data[2]),
                                   gp_Dir(data[3], data[4], data[5])),
@@ -2824,6 +2825,7 @@ EG_makeSolidBody(egObject *context, int stypx, const double *data,
     return stat;
   }
 
+  EG_referenceObject(obj, context);
   *body = obj;
   return EGADS_SUCCESS;
 }

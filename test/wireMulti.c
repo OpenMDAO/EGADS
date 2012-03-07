@@ -4,7 +4,7 @@
  *             Make a Multi-Panel Solid Wing from a set of
  *                      surface WireFrames
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *

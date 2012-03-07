@@ -13,7 +13,7 @@ c
 	integer      gohs(*), type(*), indices(*), tris(*), tric(*)
 	integer*8    null, context8, model8, geom8
 	integer*8    faces(*), bodies(*), tess(*)
-	real*8       box(6), size, focus(4), lims(4), parms(3), rlims(4)
+	real*8       boxx(6), size, focus(4), lims(4), parms(3), rlims(4)
 	real*8       xyzs(*), uvs(*)
 	real         fcolor(3), bcolor(3)
 	character*16 titles(2), gname
@@ -42,13 +42,13 @@ c
 
         write(*,*) ' '
        
-	istat = IG_getBoundingBox(model8, box)
-	size  = sqrt((box(1)-box(4))*(box(1)-box(4)) + 
-     &               (box(2)-box(5))*(box(2)-box(5)) +
-     &               (box(3)-box(6))*(box(3)-box(6)))
-	focus(1) = 0.5*(box(1)+box(4))
-	focus(2) = 0.5*(box(2)+box(5))
-	focus(3) = 0.5*(box(3)+box(6))
+	istat = IG_getBoundingBox(model8, boxx)
+	size  = sqrt((boxx(1)-boxx(4))*(boxx(1)-boxx(4)) + 
+     &               (boxx(2)-boxx(5))*(boxx(2)-boxx(5)) +
+     &               (boxx(3)-boxx(6))*(boxx(3)-boxx(6)))
+	focus(1) = 0.5*(boxx(1)+boxx(4))
+	focus(2) = 0.5*(boxx(2)+boxx(5))
+	focus(3) = 0.5*(boxx(3)+boxx(6))
 	focus(4) = size
 	parms(1) =  0.025*size
 	parms(2) =  0.001*size
@@ -120,17 +120,18 @@ C         make the graphic objects and save the handles
      &                             GV_FOREGROUND+GV_ORIENTATION,
      &                             fcolor, bcolor, gname,
      &                             ntri, 0, tris, xyzs, i, j)
-              box(1) = uvs(1)
-              box(2) = uvs(2)
-              box(3) = uvs(1)
-              box(4) = uvs(2)
+              boxx(1) = uvs(1)
+              boxx(2) = uvs(2)
+              boxx(3) = uvs(1)
+              boxx(4) = uvs(2)
               do k = 2, len
-                if(uvs(2*k-1) .LT. box(1)) box(1) = uvs(2*k-1)
-                if(uvs(2*k-1) .GT. box(3)) box(3) = uvs(2*k-1)
-                if(uvs(2*k)   .LT. box(2)) box(2) = uvs(2*k)
-                if(uvs(2*k)   .GT. box(4)) box(4) = uvs(2*k)
+                if(uvs(2*k-1) .LT. boxx(1)) boxx(1) = uvs(2*k-1)
+                if(uvs(2*k-1) .GT. boxx(3)) boxx(3) = uvs(2*k-1)
+                if(uvs(2*k)   .LT. boxx(2)) boxx(2) = uvs(2*k)
+                if(uvs(2*k)   .GT. boxx(4)) boxx(4) = uvs(2*k)
               enddo
-              write(*,1002) gname, box(1),box(3), box(2),box(4), gohs(n)
+              write(*,1002) gname, boxx(1),boxx(3), boxx(2),boxx(4), 
+     &                      gohs(n)
  1002         format(1x, a, '  Urange =',2f9.3, '  Vrange =',2f9.3, i4)
  3          continue
  2	  continue

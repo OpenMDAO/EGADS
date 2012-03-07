@@ -5,7 +5,7 @@
  *
  *             General Object Header
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -15,8 +15,8 @@
 
 
 #define EGADSMAJOR     0
-#define EGADSMINOR    87
-#define EGADSPROP     EGADSprop: Revision 0.87
+#define EGADSMINOR    88
+#define EGADSPROP     EGADSprop: Revision 0.88
 
 #define MAGIC      98789
 
@@ -56,7 +56,7 @@
   /* SURFACES */
 #define PLANE          1
 #define SPHERICAL      2
-#define CYLINDER       3
+#define CYLINDRICAL    3
 #define REVOLUTION     4 
 #define TOROIDAL       5
 #define CONICAL       10
@@ -89,6 +89,14 @@
 #define SUBTRACTION    1
 #define INTERSECTION   2
 #define FUSION         3
+
+/* SOLID BODY TYPES */
+
+#define BOX      1
+#define SPHERE   2
+#define CONE     3
+#define CYLINDER 4
+#define TORUS    5
 
 
 typedef struct {

@@ -3,7 +3,7 @@
  *
  *             Base Object Functions
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -23,7 +23,7 @@
 
 
   static char *EGADSprop[2] = {STR(EGADSPROP),
-                               "\nEGADSprop: Copyright 2011 MIT. All Rights Reserved."};
+                               "\nEGADSprop: Copyright 2011-2012 MIT. All Rights Reserved."};
 
 
   extern int EG_destroyGeometry( egObject *geom );

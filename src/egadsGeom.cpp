@@ -3,7 +3,7 @@
  *
  *             Geometry Functions
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -330,7 +330,7 @@ void EG_completeSurf(egObject *geom, Handle(Geom_Surface) &hSurf)
   Handle(Geom_CylindricalSurface) hCyl =
     Handle(Geom_CylindricalSurface)::DownCast(hSurf);
   if (!hCyl.IsNull()) {
-    geom->mtype = CYLINDER;
+    geom->mtype = CYLINDRICAL;
     return;
   }
   Handle(Geom_ToroidalSurface) hTorus =
@@ -1160,7 +1160,7 @@ EG_getGeometry(const egObject     *geom, int *oclass, int *type,
         }
         break;
         
-      case CYLINDER:
+      case CYLINDRICAL:
         data = (double *) EG_alloc(13*sizeof(double));
         if (data == NULL) {
           if (outLevel > 0)
@@ -1872,7 +1872,7 @@ EG_makeGeometry(egObject *context, int oclass, int mtype,
           }
           break;
           
-        case CYLINDER:
+        case CYLINDRICAL:
           {
             gp_Pnt pntc(data[0], data[1],  data[2]);
             gp_Dir dirx(data[3], data[4],  data[5]);

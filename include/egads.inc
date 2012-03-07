@@ -3,7 +3,7 @@ C      EGADS: Electronic Geometry Aircraft Design System
 C
 C             FORTRAN Include
 C
-C      Copyright 2011, Massachusetts Institute of Technology
+C      Copyright 2011-2012, Massachusetts Institute of Technology
 C      Licensed under The GNU Lesser General Public License, version 2.1
 C      See http://www.opensource.org/licenses/lgpl-2.1.php
 C
@@ -32,8 +32,8 @@ C         PCURVES & CURVES
         PARAMETER (OFFSET=9)
 C
 C         SURFACES
-        INTEGER    PLANE,   SPHERICAL,   CYLINDER,   REVOLUTION
-        PARAMETER (PLANE=1, SPHERICAL=2, CYLINDER=3, REVOLUTION=4)
+        INTEGER    PLANE,   SPHERICAL,   CYLINDRICAL,   REVOLUTION
+        PARAMETER (PLANE=1, SPHERICAL=2, CYLINDRICAL=3, REVOLUTION=4)
         INTEGER    TOROIDAL,   CONICAL,   EXTRUSION
         PARAMETER (TOROIDAL=5, CONICAL=10, EXTRUSION=11)
 C
@@ -54,3 +54,8 @@ C       SOLID BOOLEAN OPERATIONS
 C
 	INTEGER    SUBTRACTION,   INTERSECTION,   FUSION
 	PARAMETER (SUBTRACTION=1, INTERSECTION=2, FUSION=3)
+C
+C	SOLID BODY TYPES
+C
+	INTEGER    BOX,   SPHERE,   CONE,   CYLINDER,   TORUS
+	PARAMETER (BOX=1, SPHERE=2, CONE=3, CYLINDER=4, TORUS=5)

@@ -3,7 +3,7 @@
  *
  *             High-Level Functions
  *
- *      Copyright 2011, Massachusetts Institute of Technology
+ *      Copyright 2011-2012, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -1025,6 +1025,7 @@ EG_imprintBody(const egObject *src, int nedge, const egObject **facEdg,
     }
   }
 
+  EG_referenceObject(obj, context);
   *result = obj;
   return EGADS_SUCCESS;
 }
@@ -1229,6 +1230,7 @@ EG_filletBody(const egObject *src, int nedge, const egObject **edges,
     }
   }
 
+  EG_referenceObject(obj, context);
   *result = obj;
   return EGADS_SUCCESS;
 }
@@ -1316,6 +1318,7 @@ EG_extrude(const egObject *src, double dist, const double *dir,
   
   // do we want to do anything with attributes?
 
+  EG_referenceObject(obj, context);
   *result = obj;
   return EGADS_SUCCESS;
 }
@@ -1400,6 +1403,7 @@ EG_rotate(const egObject *src, double angle, const double *axis,
   
   // do we want to do anything with attributes?
 
+  EG_referenceObject(obj, context);
   *result = obj;
   return EGADS_SUCCESS;
 }
@@ -1527,6 +1531,7 @@ EG_loft(int nsec, const egObject **secs, int opt, egObject **result)
   
   // do we want to do anything with attributes?
 
+  EG_referenceObject(obj, context);
   *result = obj;
   return EGADS_SUCCESS;
 }

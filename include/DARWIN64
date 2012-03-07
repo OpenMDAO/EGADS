@@ -1,6 +1,6 @@
 #MAC OS X 10.5 & up -- 64 bit:
 #
-EGREV   = 0.87
+EGREV   = 0.88
 
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L../../DARWIN64/lib
 ifeq ($(CASREV),6.3)

@@ -1,4 +1,4 @@
-			EGADS REVISION 0.87 DISTRIBUTION
+			EGADS REVISION 0.88 DISTRIBUTION
 		  Electronic Geometry Aircraft Design System
 
 
@@ -22,13 +22,12 @@ src        - source files
 test       - test and example code
 
 1.2 EGADS Binary Distribution
-    
+
 	Some test and example codes use graphics through a non-Open Source
 library: GV (the Geometry Viewer). The library is made available as part
 of the current EGADS distribution but will disappear in the future. A
 separate download (in the form of a g'zipped tarball) is required which 
-when unpacked also provides a target for the EGADS build. The tarball is
-located at http://openmdao.org/releases/misc/EGADSbin.tgz. The tar image 
+when unpacked also provides a target for the EGADS build. The tar image 
 "EGADSbin.tgz" contains the following directories:
 
 DARWIN   - binary target for OSX
@@ -113,8 +112,8 @@ OpenCASCADE 6.3 as delivered from the OpenCASCADE site (this uses MSVS 2003,
 also known as Version 7.1). Because the prebuilt package from OpenCASCADE for 
 6.5 uses MSVS 2005 (Version 8.0) which does not work on Windows7, the example 
 build uses OCE for MSVS 2008 (Version 9.0).
-	Please contact Bob Haimes (at the coordinates below) for Geometry
-Viewer Libraries that may be required for other versions of Visual Studio.
+	Please contact Bob Haimes for Geometry Viewer Libraries that may be 
+required for other versions of Visual Studio.
 
 
 3. Running an EGADS Application
@@ -137,5 +136,4 @@ For an OSX/OCE install (in the default location) it may be:
 
   % export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH  -or-
   % setenv DYLD_LIBRARY_PATH /usr/local/lib:$DYLD_LIBRARY_PATH
-
 
