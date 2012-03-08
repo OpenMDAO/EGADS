@@ -10,7 +10,7 @@ c
 	integer*8    bodies(*), faces(*), edges(*), nodes(*)
 	integer*8    dummy(*)
 	real*8       t, size, large, sum, eres(18), xyz(4)
-        real*8       limits(4), box(6), uv(2), result(18)
+        real*8       limits(4), bbox(6), uv(2), result(18)
 	character*80 name
 	data         null/0/
 c
@@ -46,14 +46,14 @@ c
             write(*,*) ' Body', i, ' IG_getBodyTopos =', istat
 	    go to 1
 	  endif
-	  istat = IG_getBoundingBox(bodies(i), box)
+	  istat = IG_getBoundingBox(bodies(i), bbox)
 	  if (istat .NE. 0) then
             write(*,*) ' Body', i, ' IG_getBoundingBox =', istat
 	    go to 1
 	  endif
-          size = dsqrt((box(4)-box(1))*(box(4)-box(1)) +
-     &                 (box(5)-box(2))*(box(5)-box(2)) +
-     &                 (box(6)-box(3))*(box(6)-box(3)))
+          size = dsqrt((bbox(4)-bbox(1))*(bbox(4)-bbox(1)) +
+     &                 (bbox(5)-bbox(2))*(bbox(5)-bbox(2)) +
+     &                 (bbox(6)-bbox(3))*(bbox(6)-bbox(3)))
 	  write(*,*) 'Body = ', i, '  nFaces = ', nfaces,
      &               '  size = ', size
 c
