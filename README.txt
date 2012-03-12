@@ -1,4 +1,4 @@
-			EGADS REVISION 0.88 DISTRIBUTION
+			EGADS REVISION 0.88 DISTRIBUTION 
 		  Electronic Geometry Aircraft Design System
 
 
