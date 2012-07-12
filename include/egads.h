@@ -93,6 +93,8 @@ __ProtoExt__ int  EG_approximate( ego context, int maxdeg, double tol,
                                   ego *bspline );
 __ProtoExt__ int  EG_otherCurve( const egObject *surface, const egObject *curve,
                                  double tol, egObject **newcurve );
+__ProtoExt__ int  EG_isoCline( const egObject *surface, int UV, double val,
+                               egObject **newcurve );
 __ProtoExt__ int  EG_convertToBSpline( ego geom, ego *bspline ); 
 
 /* topology functions */
@@ -168,10 +170,13 @@ __ProtoExt__ int  EG_imprintBody( const ego src, int nedge, const ego *facEdg,
                                   ego *result );
 __ProtoExt__ int  EG_filletBody( const ego src, int nedge, const ego *edges, 
                                  double radius, ego *result );
+__ProtoExt__ int  EG_hollowBody( const ego src, int nface, const ego *faces, 
+                                 double offset, int join, ego *result );
 __ProtoExt__ int  EG_extrude( const ego src, double dist, const double *dir, 
                                     ego *result );
 __ProtoExt__ int  EG_rotate( const ego src, double angle, const double *axis, 
                                    ego *result );
+__ProtoExt__ int  EG_sweep( const ego src, const ego edge, ego *result );
 __ProtoExt__ int  EG_loft( int nsec, const ego *secs, int opt, ego *result );
 
 #ifdef __cplusplus

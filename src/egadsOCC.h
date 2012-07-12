@@ -152,6 +152,9 @@
 #include <BRepCheck_ListOfStatus.hxx>
 #include <BRepFeat_SplitShape.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
+#include <BRepOffsetAPI_MakeOffsetShape.hxx>
+#include <BRepOffsetAPI_MakePipe.hxx>
+#include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -167,11 +170,11 @@
 #include <ShapeConstruct.hxx>
 #include <ShapeConstruct_Curve.hxx>
 
-#include "IGESControl_Controller.hxx"
-#include "IGESControl_Reader.hxx"
-#include "IGESControl_Writer.hxx"
-#include "STEPControl_StepModelType.hxx"
-#include "STEPControl_Reader.hxx"
-#include "STEPControl_Writer.hxx"
+#include <IGESControl_Controller.hxx>
+#include <IGESControl_Reader.hxx>
+#include <IGESControl_Writer.hxx>
+#include <STEPControl_StepModelType.hxx>
+#include <STEPControl_Reader.hxx>
+#include <STEPControl_Writer.hxx>
 
 #endif

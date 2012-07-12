@@ -39,6 +39,8 @@
                                  egObject **bspline );
   extern "C" int EG_otherCurve( const egObject *surface, const egObject *curve, 
                                 double tol, egObject **newcurve );
+  extern "C" int EG_isoCline( const egObject *surface, int UV, double value, 
+                              egObject **newcurve );
   extern "C" int EG_convertToBSpline( egObject *geom, egObject **bspline ); 
 
 
@@ -2231,12 +2233,145 @@ EG_evaluate(const egObject *geom, const double *param,
 }
 
 
+static void
+EG_nearestCurve(Handle_Geom_Curve hCurve, double *coor, 
+                double tmin, double tmax, double *t, double *xyz)
+{
+  int    i;
+  double a, b, tx, pw[3];
+  gp_Pnt pnt;
+  gp_Vec t1, t2;
+  static double ratios[5] = {0.02, 0.25, 0.5, 0.75, 0.98};
+
+  // sample and pick closest
+  for (i = 0; i < 5; i++) {
+    tx = (1.0-ratios[i])*tmin + ratios[i]*tmax;
+    hCurve->D0(tx, pnt);
+    a = (pnt.X()-coor[0])*(pnt.X()-coor[0]) + 
+        (pnt.Y()-coor[1])*(pnt.Y()-coor[1]) +
+        (pnt.Z()-coor[2])*(pnt.Z()-coor[2]);
+    if (i == 0) {
+      *t = tx;
+      b  = a;
+    } else {
+      if (a < b) {
+        *t = tx;
+        b  = a;
+      }
+    }
+  }
+  
+  // netwon-raphson from picked position
+  for (i = 0; i < 20; i++) {
+    if ((*t < tmin) || (*t > tmax)) break;
+    hCurve->D2(*t, pnt, t1, t2);
+    pw[0] = pnt.X() - coor[0];
+    pw[1] = pnt.Y() - coor[1];
+    pw[2] = pnt.Z() - coor[2];
+    b     = -( pw[0]*t1.X() +  pw[1]*t1.Y() +  pw[2]*t1.Z());
+    a     =  (t1.X()*t1.X() + t1.Y()*t1.Y() + t1.Z()*t1.Z()) +
+             ( pw[0]*t2.X() +  pw[1]*t2.Y() +  pw[2]*t2.Z());
+    if (a == 0.0) break;
+    b  /= a;
+    if (fabs(b) < 1.e-10*(tmax-tmin)) break;
+    *t += b;
+  }
+  if (*t < tmin) *t = tmin;
+  if (*t > tmax) *t = tmax;
+  
+  hCurve->D0(*t, pnt);
+  xyz[0] = pnt.X();
+  xyz[1] = pnt.Y();
+  xyz[2] = pnt.Z();
+}
+
+
+static int
+EG_nearestSurface(Handle_Geom_Surface hSurface, double *range,
+                  double *point, double *uv, double *coor)
+{
+  int    i, j, count;
+  gp_Pnt P0;
+  gp_Vec V1, V2, U1, U2, UV;
+  double a00, a10, a11, b0, b1, det, dist, ldist, dx[3], uvs[2];
+  static double ratios[5] = {0.02, 0.25, 0.5, 0.75, 0.98};
+  
+  // find candidate starting point
+  ldist = 1.e308;
+  for (j = 0; j < 5; j++) {
+    uvs[1] = (1.0-ratios[j])*range[2] + ratios[j]*range[3];
+    for (i = 0; i < 5; i++) {
+      uvs[0] = (1.0-ratios[i])*range[0] + ratios[i]*range[1];
+      hSurface->D0(uv[0], uv[1], P0);
+      dx[0] = P0.X() - point[0];
+      dx[1] = P0.Y() - point[1];
+      dx[2] = P0.Z() - point[2];
+      dist  = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+      if (dist < ldist) {
+        ldist = dist;
+        uv[0] = uvs[0];
+        uv[1] = uvs[1];
+      }  
+    }
+  }
+
+  // newton iteration
+  for (count = 0; count < 10; count++) {
+    hSurface->D2(uv[0], uv[1], P0, U1, V1, U2, V2, UV);
+    dx[0] = P0.X() - point[0];
+    dx[1] = P0.Y() - point[1];
+    dx[2] = P0.Z() - point[2];
+    dist  = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
+    if (dist < Precision::Confusion()) break;
+    if (count != 0) {
+      if (fabs(dist-ldist) < Precision::Confusion()) break;
+      if (dist > ldist) {
+        uv[0] = uvs[0];
+        uv[1] = uvs[1];
+        hSurface->D0(uv[0], uv[1], P0);
+        coor[0] = P0.X();
+        coor[1] = P0.Y();
+        coor[2] = P0.Z();
+        return EGADS_EMPTY;
+      }
+    }
+
+    b0  = -dx[0]*U1.X() -  dx[1]*U1.Y() -  dx[2]*U1.Z();
+    b1  = -dx[0]*V1.X() -  dx[1]*V1.Y() -  dx[2]*V1.Z();
+    a00 = U1.X()*U1.X() + U1.Y()*U1.Y() + U1.Z()*U1.Z() +
+           dx[0]*U2.X() +  dx[1]*U2.Y() +  dx[2]*U2.Z();
+    a10 = U1.X()*V1.X() + U1.Y()*V1.Y() + U1.Z()*V1.Z() +
+           dx[0]*UV.X() +  dx[1]*UV.Y() +  dx[2]*UV.Z();
+    a11 = V1.X()*V1.X() + V1.Y()*V1.Y() + V1.Z()*V1.Z() +
+           dx[0]*V2.X() +  dx[1]*V2.Y() +  dx[2]*V2.Z();
+
+    det    = a00*a11 - a10*a10;
+    if (det == 0.0) return EGADS_DEGEN;
+    det    = 1.0/det;
+    uvs[0] = uv[0];
+    uvs[1] = uv[1];
+    uv[0] += det*(b0*a11 - b1*a10);
+    uv[1] += det*(b1*a00 - b0*a10);
+    ldist  = dist;
+//  printf("   %d: %lf %lf   %le\n", count, uv[0], uv[1], ldist);
+  }
+
+  hSurface->D0(uv[0], uv[1], P0);
+  coor[0] = P0.X();
+  coor[1] = P0.Y();
+  coor[2] = P0.Z();
+  if (count == 10) return EGADS_EMPTY;
+
+  return EGADS_SUCCESS;
+}
+
+
 int
 EG_invEvaluate(const egObject *geom, double *xyz, 
                double *param, double *result)
 {
-  int           outLevel;
-  Standard_Real period, t, u, v, range[4];
+  int           outLevel, stat;
+  Standard_Real period, t, u, v, range[4], coor[3];
 
   if  (geom == NULL)               return EGADS_NULLOBJ;
   if  (geom->magicnumber != MAGIC) return EGADS_NOTOBJ;
@@ -2286,32 +2421,15 @@ EG_invEvaluate(const egObject *geom, double *xyz,
   if ((geom->oclass == CURVE) || (geom->oclass == EDGE)) {
   
     // 1D -- curves & Edges
+    Handle(Geom_Curve) hCurve;
     if (geom->oclass == CURVE) {
       egadsCurve *pcurve = (egadsCurve *) geom->blind;
-      Handle(Geom_Curve) hCurve = pcurve->handle;
-      GeomAPI_ProjectPointOnCurve projPnt(pnt, hCurve);
-      if (projPnt.NbPoints() == 0) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: No projection on Curve (EG_invEvaluate)!\n");
-        return EGADS_NOTFOUND;
-      }
-      t = projPnt.LowerDistanceParameter();
-      if (hCurve->IsPeriodic()) {
-        period   = hCurve->Period();
-        range[0] = hCurve->FirstParameter();
-        range[1] = hCurve->LastParameter();
-        if ((t+PARAMACC < range[0]) || (t-PARAMACC > range[1])) {
-          if (period != 0.0)
-            if (t+PARAMACC < range[0]) {
-              if (t+period-PARAMACC < range[1]) t += period;
-            } else {
-              if (t-period+PARAMACC > range[0]) t -= period;
-            }
-        }
-      }
-      pnt = projPnt.NearestPoint();
+      hCurve   = pcurve->handle;
+      range[0] = hCurve->FirstParameter();
+      range[1] = hCurve->LastParameter();
     } else {
       egadsEdge *pedge = (egadsEdge *) geom->blind;
+      BRep_Tool::Range(pedge->edge, range[0], range[1]);
       egObject  *curv  = pedge->curve;
       if (curv == NULL) {
         if (outLevel > 0)
@@ -2324,17 +2442,42 @@ EG_invEvaluate(const egObject *geom, double *xyz,
           printf(" EGADS Warning: No curve Data for Edge (EG_invEvaluate)!\n");
         return EGADS_NODATA;
       }
-      BRep_Tool::Range(pedge->edge, range[0], range[1]);
-      Handle(Geom_Curve) hCurve = pcurve->handle;
-      GeomAPI_ProjectPointOnCurve projPnt(pnt, hCurve, range[0], range[1]);
-      if (projPnt.NbPoints() == 0) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: No projection on Edge (EG_invEvaluate)!\n");
-        return EGADS_NOTFOUND;
-      }
+      hCurve = pcurve->handle;
+    }
+
+    GeomAPI_ProjectPointOnCurve projPnt(pnt, hCurve);
+    if (projPnt.NbPoints() == 0) {
+      EG_nearestCurve(hCurve, xyz, range[0], range[1], &t, result);
+      pnt.SetX(result[0]);
+      pnt.SetY(result[1]);
+      pnt.SetZ(result[2]);
+    } else {
       pnt = projPnt.NearestPoint();
       t   = projPnt.LowerDistanceParameter();
     }
+
+    if (hCurve->IsPeriodic()) {
+      period   = hCurve->Period();
+      range[0] = hCurve->FirstParameter();
+      range[1] = hCurve->LastParameter();
+      if ((t+PARAMACC < range[0]) || (t-PARAMACC > range[1])) {
+        if (period != 0.0)
+          if (t+PARAMACC < range[0]) {
+            if (t+period-PARAMACC < range[1]) t += period;
+          } else {
+            if (t-period+PARAMACC > range[0]) t -= period;
+          }
+      }
+    }
+    
+    /* clip it? */
+    if (geom->oclass == EDGE)
+      if ((t < range[0]) || (t > range[1])) {
+        if (t < range[0]) t = range[0];
+        if (t > range[1]) t = range[1];
+        hCurve->D0(t, pnt);
+      }
+
     result[0] = pnt.X();
     result[1] = pnt.Y();
     result[2] = pnt.Z();
@@ -2343,48 +2486,15 @@ EG_invEvaluate(const egObject *geom, double *xyz,
   } else {
   
     // 2D -- surfaces & Faces
+    Handle(Geom_Surface) hSurface;
     if (geom->oclass == SURFACE) {
       egadsSurface *psurf = (egadsSurface *) geom->blind;
-      Handle(Geom_Surface) hSurface = psurf->handle;
-      GeomAPI_ProjectPointOnSurf projPnt(pnt, hSurface);
-      if (!projPnt.IsDone()) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: Surf Projection Incomplete (EG_invEvaluate)!\n");
-        return EGADS_NOTFOUND;
-      }
-      if (projPnt.NbPoints() == 0) {
-        if (outLevel > 0)
-          printf(" EGADS Warning: No projection on Surf (EG_invEvaluate)!\n");
-        return EGADS_NOTFOUND;
-      }
-      projPnt.LowerDistanceParameters(u, v);
-      if (hSurface->IsUPeriodic()) {
-        period = hSurface->UPeriod();
-        hSurface->Bounds(range[0],range[1], range[2],range[3]);
-        if ((u+PARAMACC < range[0]) || (u-PARAMACC > range[1])) {
-          if (period != 0.0)
-            if (u+PARAMACC < range[0]) {
-              if (u+period-PARAMACC < range[1]) u += period;
-            } else {
-              if (u-period+PARAMACC > range[0]) u -= period;
-            }
-        }
-      }
-      if (hSurface->IsVPeriodic()) {
-        period = hSurface->VPeriod();
-        hSurface->Bounds(range[0],range[1], range[2],range[3]);
-        if ((v+PARAMACC < range[2]) || (v-PARAMACC > range[3])) {
-          if (period != 0.0)
-            if (v+PARAMACC < range[2]) {
-              if (v+period-PARAMACC < range[3]) v += period;
-            } else {
-              if (v-period+PARAMACC > range[2]) v -= period;
-            }
-        }
-      }
-      pnt = projPnt.NearestPoint();
+      hSurface = psurf->handle;
+      hSurface->Bounds(range[0],range[1], range[2],range[3]);
     } else {
       egadsFace *pface = (egadsFace *) geom->blind;
+      BRepTools::UVBounds(pface->face, range[0],range[1], 
+                                       range[2],range[3]);
       egObject  *surf  = pface->surface;
       if (surf == NULL) {
         if (outLevel > 0)
@@ -2397,24 +2507,164 @@ EG_invEvaluate(const egObject *geom, double *xyz,
           printf(" EGADS Warning: No Surf Data for Face (EG_invEvaluate)!\n");
         return EGADS_NODATA;
       }
-      Handle(Geom_Surface) hSurface = psurf->handle;
-      BRepTools::UVBounds(pface->face, range[0],range[1], 
-                                       range[2],range[3]);
-      GeomAPI_ProjectPointOnSurf projPnt(pnt, hSurface, range[0],
-                                         range[1], range[2],range[3]);
-      if (!projPnt.IsDone()) {
+      hSurface = psurf->handle;
+    }
+    
+    GeomAPI_ProjectPointOnSurf projPnt(pnt, hSurface);
+    if (!projPnt.IsDone()) {
+      stat = EG_nearestSurface(hSurface, range, xyz, param, result);
+      if (stat == EGADS_DEGEN) {
         if (outLevel > 0)
-          printf(" EGADS Warning: Face Projection Incomplete (EG_invEvaluate)!\n");
-        return EGADS_NOTFOUND;
+          printf(" EGADS Warning: Surf Proj Incomplete - DEGEN (EG_invEvaluate)!\n");
+        return stat;
+      } else if (stat == EGADS_EMPTY) {
+        if (outLevel > 1)
+          printf(" EGADS Warning: Surf Proj Incomplete (EG_invEvaluate)!\n");
       }
+      u  = param[0];
+      v  = param[1];
+      pnt.SetX(result[0]);
+      pnt.SetY(result[1]);
+      pnt.SetZ(result[2]);
+    } else {
       if (projPnt.NbPoints() == 0) {
         if (outLevel > 0)
-          printf(" EGADS Warning: No projection on Face (EG_invEvaluate)!\n");
+          printf(" EGADS Warning: No projection on Surf (EG_invEvaluate)!\n");
         return EGADS_NOTFOUND;
       }
-      projPnt.LowerDistanceParameters(u, v);
       pnt = projPnt.NearestPoint();
+      projPnt.LowerDistanceParameters(u, v);
     }
+
+    if (hSurface->IsUPeriodic()) {
+      period = hSurface->UPeriod();
+      hSurface->Bounds(range[0],range[1], range[2],range[3]);
+      if ((u+PARAMACC < range[0]) || (u-PARAMACC > range[1])) {
+        if (period != 0.0)
+          if (u+PARAMACC < range[0]) {
+            if (u+period-PARAMACC < range[1]) u += period;
+          } else {
+            if (u-period+PARAMACC > range[0]) u -= period;
+          }
+      }
+    }
+    if (hSurface->IsVPeriodic()) {
+      period = hSurface->VPeriod();
+      hSurface->Bounds(range[0],range[1], range[2],range[3]);
+      if ((v+PARAMACC < range[2]) || (v-PARAMACC > range[3])) {
+        if (period != 0.0)
+          if (v+PARAMACC < range[2]) {
+            if (v+period-PARAMACC < range[3]) v += period;
+          } else {
+            if (v-period+PARAMACC > range[2]) v -= period;
+          }
+      }
+    }
+
+    if (geom->oclass == FACE) {
+      egadsFace *pface = (egadsFace *) geom->blind;
+      Standard_Real tol = BRep_Tool::Tolerance(pface->face);
+      gp_Pnt2d pnt2d(u, v);
+      TopOpeBRep_PointClassifier pClass;
+      pClass.Load(pface->face);
+      if (pClass.Classify(pface->face, pnt2d, tol) == TopAbs_OUT) {
+        /* find closest clipped point on the edges */
+        double dist2 = 1.e308;
+        gp_Pnt pnts(xyz[0], xyz[1], xyz[2]);
+        gp_Pnt pntt(xyz[0], xyz[1], xyz[2]);
+        TopExp_Explorer ExpW;
+        for (ExpW.Init(pface->face, TopAbs_WIRE); ExpW.More(); ExpW.Next()) {
+          TopoDS_Shape shapw = ExpW.Current();
+          TopoDS_Wire  wire  = TopoDS::Wire(shapw);
+          BRepTools_WireExplorer ExpWE;
+          for (ExpWE.Init(wire); ExpWE.More(); ExpWE.Next()) {
+            TopoDS_Shape shape = ExpWE.Current();
+            TopoDS_Edge  wedge = TopoDS::Edge(shape);
+            if (BRep_Tool::Degenerated(wedge)) continue;
+            Standard_Real t1, t2;
+            Handle(Geom_Curve) hCurve = BRep_Tool::Curve(wedge, t1, t2);
+            GeomAPI_ProjectPointOnCurve projPnt(pnts, hCurve);
+            if (projPnt.NbPoints() == 0) {
+              EG_nearestCurve(hCurve, xyz, t1, t2, &t, result);
+              pnt.SetX(result[0]);
+              pnt.SetY(result[1]);
+              pnt.SetZ(result[2]);
+            } else {
+              pnt = projPnt.NearestPoint();
+              t   = projPnt.LowerDistanceParameter();
+            }
+            if ((t < t1) || (t > t2)) {
+              if (t < t1) t = t1;
+              if (t > t2) t = t2;
+              hCurve->D0(t, pnt);
+            }
+            double d = (pnts.X()-pnt.X())*(pnts.X()-pnt.X()) +
+                       (pnts.Y()-pnt.Y())*(pnts.Y()-pnt.Y()) +
+                       (pnts.Z()-pnt.Z())*(pnts.Z()-pnt.Z());
+            if (d < dist2) {
+              pntt  = pnt;
+              dist2 = d;
+            }
+          }
+        }
+        // project again but with clipped point
+        GeomAPI_ProjectPointOnSurf projPnt(pntt, hSurface);
+        if (!projPnt.IsDone()) {
+          coor[0] = pntt.X();
+          coor[1] = pntt.Y();
+          coor[2] = pntt.Z();
+          stat = EG_nearestSurface(hSurface, range, coor, param, result);
+          if (stat == EGADS_DEGEN) {
+            if (outLevel > 0)
+              printf(" EGADS Warning: Face Proj Incomplete - DEGEN (EG_invEvaluate)!\n");
+            return stat;
+          } else if (stat == EGADS_EMPTY) {
+            if (outLevel > 1)
+              printf(" EGADS Warning: Face Proj Incomplete (EG_invEvaluate)!\n");
+          }
+          u  = param[0];
+          v  = param[1];
+          pnt.SetX(result[0]);
+          pnt.SetY(result[1]);
+          pnt.SetZ(result[2]);
+        } else {
+          if (projPnt.NbPoints() == 0) {
+            if (outLevel > 0)
+              printf(" EGADS Warning: No projection on Face (EG_invEvaluate)!\n");
+            return EGADS_NOTFOUND;
+          }
+          pnt = projPnt.NearestPoint();
+          projPnt.LowerDistanceParameters(u, v);
+        }
+
+        if (hSurface->IsUPeriodic()) {
+          period = hSurface->UPeriod();
+          hSurface->Bounds(range[0],range[1], range[2],range[3]);
+          if ((u+PARAMACC < range[0]) || (u-PARAMACC > range[1])) {
+            if (period != 0.0)
+              if (u+PARAMACC < range[0]) {
+                if (u+period-PARAMACC < range[1]) u += period;
+              } else {
+                if (u-period+PARAMACC > range[0]) u -= period;
+              }
+          }
+        }
+        if (hSurface->IsVPeriodic()) {
+          period = hSurface->VPeriod();
+          hSurface->Bounds(range[0],range[1], range[2],range[3]);
+          if ((v+PARAMACC < range[2]) || (v-PARAMACC > range[3])) {
+            if (period != 0.0)
+              if (v+PARAMACC < range[2]) {
+                if (v+period-PARAMACC < range[3]) v += period;
+              } else {
+                if (v-period+PARAMACC > range[2]) v -= period;
+              }
+          }
+        }
+             
+      }
+    }
+
     result[0] = pnt.X();
     result[1] = pnt.Y();
     result[2] = pnt.Z();
@@ -2639,6 +2889,42 @@ EG_otherCurve(const egObject *surface, const egObject *curve,
 
 
 int
+EG_isoCline(const egObject *surface, int UV, double value, 
+                  egObject **newcurve)
+{
+  int      stat;
+  egObject *context, *obj;
+
+  *newcurve = NULL;
+  if (surface == NULL)               return EGADS_NULLOBJ;
+  if (surface->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (surface->oclass != SURFACE)    return EGADS_NOTGEOM;
+  if (surface->blind == NULL)        return EGADS_NODATA;
+  context = EG_context(surface);
+
+  egadsSurface *psurf           = (egadsSurface *) surface->blind;
+  Handle(Geom_Surface) hSurface = psurf->handle;
+  Handle(Geom_Curve)   newcrv;
+  if (UV == UISO) {
+    newcrv = hSurface->UIso(value);
+  } else {
+    newcrv = hSurface->VIso(value);
+  }
+
+  stat = EG_makeObject(context, &obj);
+  if (stat != EGADS_SUCCESS) {
+    printf(" EGADS Error: make Curve = %d (EG_otherCurve)!\n", stat);
+    return stat;
+  }
+  EG_completeCurve(obj, newcrv);
+  EG_referenceObject(obj, context);
+  *newcurve = obj;
+
+  return EGADS_SUCCESS;
+}
+
+
+int
 EG_convertToBSpline(egObject *object, egObject **bspline) 
 {
   int           outLevel, stat;
@@ -2767,6 +3053,3 @@ EG_convertToBSpline(egObject *object, egObject **bspline)
     
   return EGADS_SUCCESS;
 }
-
-
-

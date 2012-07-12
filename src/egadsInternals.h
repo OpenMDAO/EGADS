@@ -52,6 +52,7 @@ __ProtoExt__ int  EG_removeCntxtRef( egObject *object );
 
 __ProtoExt__ int  EG_attributeDel( egObject *obj, /*@null@*/ const char *name );
 __ProtoExt__ int  EG_attributeDup( const egObject *src, egObject *dst );
+__ProtoExt__ int  EG_attributePrint( const egObject *src );
 
 #ifdef __cplusplus
 }

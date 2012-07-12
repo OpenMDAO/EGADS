@@ -1,4 +1,4 @@
-			EGADS REVISION 0.88 DISTRIBUTION 
+			EGADS REVISION 0.89 DISTRIBUTION
 		  Electronic Geometry Aircraft Design System
 
 
@@ -11,7 +11,8 @@ https://github.com/tpaviot/oce. Prebuilt versions are available at these sites
 for Windows using various versions of Visual Studio and MAC OSX at 64-bits. 
 Any other configuration must be built from source (unless you are using a 
 Debian variant of LINUX, such as Ubuntu, where there are available prebuilt 
-packages as part of the LINUX distribution).
+packages as part of the LINUX distribution). Note that 6.5 is recommended but
+there are SBO robustness problems at 6.5.3.
 
 1.1 EGADS Source Distribution Layout
 
@@ -72,6 +73,8 @@ These are driven by a small number of environment variables as seen below.
 		   variable is usually "Linux".
 	CASREV   - the major.minor revision of OpenCASCADE. For example:
 		   "6.3" or "6.5".
+	CASVER	 - the full version of OpenCASCADE without "dots". For example:
+	           "652".
 
 2.2 Notes on building FORTRAN bindings:
 
