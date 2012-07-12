@@ -57,7 +57,7 @@ $(FOBJS):	$(IDIR)\egadsErrors.h egadsInternals.h \
 $(OBJSP):	$(IDIR)\egadsErrors.h egadsOCC.h egadsInternals.h \
 		$(IDIR)\egadsTypes.h egadsClasses.h
 .cpp.obj:
-	cl /c $(CPPOPT) $(DEFINE) $(INCS) /I. /I$(IDIR) $<
+	cl /c $(CPPOPT) $(DEFINE) /DCASVER=$(CASVER) $(INCS) /I. /I$(IDIR) $<
 
 end:
 	-del *.cpp *.c *.h *.rc *def *.manifest

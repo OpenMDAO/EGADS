@@ -23,7 +23,7 @@
   extern int EG_getTessGeom(const egObject *tess, int *sizes, double **xyz);
 
   extern int EG_makeTessBody(egObject *object, double *params, egObject **tess);
-  extern int EG_remakeTess(egObject *tess, int nobj, egObject **objs, 
+  extern int EG_remakeTess(egObject *tess, int nobj, /*@null@*/ egObject **objs,
                            double *params);
   extern int EG_getTessEdge(const egObject *tess, int index, int *len, 
                             const double **xyz, const double **t);

@@ -1819,7 +1819,11 @@ EG_makeTopology(egObject *context, /*@null@*/ egObject *geom,
         prc = old;
         BRepBuilderAPI::Precision(old);
       }
+#if CASVER >= 652
+      MFace.Init(psurf->handle, Standard_False, prc);
+#else
       MFace.Init(psurf->handle, Standard_False);
+#endif
       for (i = 0; i < nChildren; i++) {
         egadsLoop *ploop = (egadsLoop *) children[i]->blind;
         TopoDS_Wire wire = ploop->loop;
@@ -2209,8 +2213,14 @@ EG_getArea(egObject *object, /*@null@*/ const double *limits,
       return EGADS_NODATA;      
     }
     egadsSurface *psurf = (egadsSurface *) object->blind;
+#if CASVER >= 652
+    Standard_Real tol = BRepLib::Precision();
+    BRepLib_MakeFace MFace(psurf->handle, limits[0], limits[1],
+                                          limits[2], limits[3], tol);
+#else
     BRepLib_MakeFace MFace(psurf->handle, limits[0], limits[1],
                                           limits[2], limits[3]);
+#endif
     Face = MFace.Face();
     
   } else {
@@ -2238,7 +2248,6 @@ EG_getArea(egObject *object, /*@null@*/ const double *limits,
           printf(" EGADS Error: Cannot make Planar Surface (EG_getArea)!\n");
         return EGADS_GEOMERR;
       }
-
       BRepLib_MakeFace MFace(hSurface, ploop->loop);
       Face = MFace.Face();
       
@@ -2271,7 +2280,11 @@ EG_getArea(egObject *object, /*@null@*/ const double *limits,
           prc = old;
           BRepBuilderAPI::Precision(old);
         }
+#if CASVER >= 652
+        MFace.Init(psurf->handle, Standard_False, prc);
+#else
         MFace.Init(psurf->handle, Standard_False);
+#endif
         MFace.Add(ploop->loop);
         if (MFace.Error()) {
           if (outLevel > 0)
@@ -2351,8 +2364,14 @@ EG_makeFace(egObject *object, int mtype,
   
     egadsSurface *psurf = (egadsSurface *) object->blind;
     Handle(Geom_Surface) hSurf = psurf->handle;
+#if CASVER >= 652
+    Standard_Real tol = BRepLib::Precision();
+    BRepLib_MakeFace MFace(hSurf, limits[0], limits[1],
+                                  limits[2], limits[3], tol);
+#else
     BRepLib_MakeFace MFace(hSurf, limits[0], limits[1],
                                   limits[2], limits[3]);
+#endif
     Face = MFace.Face();
     if (mtype == SREVERSE) {
       Face.Orientation(TopAbs_REVERSED);

@@ -34,6 +34,8 @@
                             egObject **bspline);
   extern int EG_otherCurve(const egObject *surface, const egObject *curve, 
                            double tol, egObject **newcrv);
+  extern int EG_isoCline(const egObject *surface, int iUV, double value, 
+                               egObject **newcrv);
   extern int EG_convertToBSpline(egObject *geom, egObject **bspline); 
 
 
@@ -159,6 +161,24 @@ ig_othercurve_(INT8 *isurf, INT8 *icrv, double *tol, INT8 *igeom)
   surf   = (egObject *) *isurf;
   curv   = (egObject *) *icrv;
   stat   = EG_otherCurve(surf, curv, *tol, &geom); 
+  if (stat == EGADS_SUCCESS) *igeom = (INT8) geom;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_ISOCLINE (INT8 *isurf, int *iUV, double *value, INT8 *igeom)
+#else
+ig_isocline_(INT8 *isurf, int *iUV, double *value, INT8 *igeom)
+#endif
+{
+  int      stat;
+  egObject *surf, *geom;
+
+  *igeom = 0;
+  surf   = (egObject *) *isurf;
+  stat   = EG_isoCline(surf, *iUV, *value, &geom); 
   if (stat == EGADS_SUCCESS) *igeom = (INT8) geom;
   return stat;
 }

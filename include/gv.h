@@ -493,7 +493,7 @@ int gv_getfamily       __ProtoGlarp__(( char *name, int type, int *attr ));
  */
 
 
-int gv_numfamily       __ProtoGlarp__(( ));
+int gv_numfamily       __ProtoGlarp__(( void ));
 
 /*
  *   returns the number of families

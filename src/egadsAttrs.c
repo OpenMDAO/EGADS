@@ -17,6 +17,50 @@
 #include "egadsInternals.h"
 
 
+
+int
+EG_attributePrint(const egObject *obj)
+{
+  int     i, j;
+  egAttrs *attrs;
+
+  if (obj == NULL)               return EGADS_NULLOBJ;
+  if (obj->magicnumber != MAGIC) return EGADS_NOTOBJ;
+  if (obj->oclass == EMPTY)      return EGADS_EMPTY;
+  if (obj->oclass == NIL)        return EGADS_EMPTY;
+  if (obj->oclass == REFERENCE)  return EGADS_REFERCE;
+
+  attrs = (egAttrs *) obj->attrs;
+  if (attrs == NULL) return EGADS_SUCCESS;
+  
+  printf("\n Attributes:\n");
+  for (i = 0; i < attrs->nattrs; i++) {
+    printf("    %s: ", attrs->attrs[i].name);
+    if (attrs->attrs[i].type == ATTRINT) {
+      if (attrs->attrs[i].length <= 1) {
+        printf("%d\n", attrs->attrs[i].vals.integer);
+      } else {
+        for (j = 0; j < attrs->attrs[i].length; j++)
+          printf("%d ", attrs->attrs[i].vals.integers[j]);
+        printf("\n");
+      }
+    } else if (attrs->attrs[i].type == ATTRREAL) {
+      if (attrs->attrs[i].length <= 1) {
+        printf("%lf\n", attrs->attrs[i].vals.real);
+      } else {
+        for (j = 0; j < attrs->attrs[i].length; j++)
+          printf("%lf ", attrs->attrs[i].vals.reals[j]);
+        printf("\n");
+      }
+    } else {
+      printf("%s\n", attrs->attrs[i].vals.string);
+    }
+  }
+
+  return EGADS_SUCCESS;
+}
+
+
 int
 EG_attributeAdd(egObject *obj, const char *name, int atype, int len,
                 /*@null@*/ const int  *ints, /*@null@*/ const double *reals,

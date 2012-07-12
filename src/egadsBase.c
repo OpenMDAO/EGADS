@@ -109,6 +109,7 @@ EG_outLevel(const egObject *obj)
 int
 EG_setOutLevel(egObject *context, int outLevel)
 {
+  int     old;
   egCntxt *cntx;
 
   if  (context == NULL)                 return EGADS_NULLOBJ;
@@ -117,9 +118,10 @@ EG_setOutLevel(egObject *context, int outLevel)
   if ((outLevel < 0) || (outLevel > 3)) return EGADS_RANGERR;
   cntx = (egCntxt *) context->blind;
   if  (cntx == NULL)                    return EGADS_NODATA;
+  old = cntx->outLevel;
   cntx->outLevel = outLevel;
   
-  return EGADS_SUCCESS;
+  return old;
 }
 
 
