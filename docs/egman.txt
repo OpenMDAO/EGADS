@@ -44,6 +44,7 @@ icode = EG_setOutLevel(ego context, int outLevel)
 icode = IG_setOutLevel(I*8 context, I*4 outLevel)
 
 Sets the EGADS verbose level (0-silent to 3-debug), The default is 1.
+On success it returns the old output level.
 
 --------------------------------------------------------------------------------------------
 --close
@@ -441,9 +442,22 @@ icode = IG_otherCurve(I*8 surface, I*8 iCrv, R*8    tol,
 
 Computes and returns the other curve that matches the input curve. If the input curve is a PCURVE, the output curve is a 3D CURVE (and vice versa).
 
-surface    the SURFACE object used for the conversion
+surface	the SURFACE object used for the conversion
 iCrv	the input PCURVE or CURVE object
-tol      	is the tolerance to use when fitting the output curve
+tol  	is the tolerance to use when fitting the output curve
+oCrv	the returned approximated resultant curve object
+
+--------------------------------------------------------------------------------------------
+--isoCline
+
+icode = EG_isoCline(ego surface, int iUV, double val, ego *oCrv) 
+icode = IG_isoCline(I*8 surface, I*4 iUV, R*8    val, I*8  oCrv) 
+
+Computes from the input Surface and returns the isocline curve.
+
+surface	the SURFACE object used for the conversion
+iUV	either UISO (0) or VISO (1)
+val   	the value of the isocline
 oCrv	the returned approximated resultant curve object
 
 --------------------------------------------------------------------------------------------
@@ -524,7 +538,7 @@ data       may be NULL except for:
 nchild    number of children (lesser) topological objects
 chldrn    a vector of children objects (nchild in length) 
               if LOOP and has reference SURFACE, then 2*nchild in length (PCURVES follow)
-senses  a vector of integer senses for the children (required for LOOPs only)
+senses  a vector of integer senses for the children (required for FACES & LOOPs only)
 topo       the resultant returned topological object
 
 --------------------------------------------------------------------------------------------
@@ -685,15 +699,16 @@ icode = IG_makeTessGeom(I*8 geom, R*8     limits, I*4  sizes,
 
 Creates a discretization object from a geometry-based Object.
 
-geom     	the input object, may be a CURVE or SURFACE
-sizes      	a set of 2 integers that specifies the size and dimensionality of the
-              	data. The second is assumed zero for a CURVE and in this case
-              	the first integer is the length of the number of evenly spaced (in t)
-              	points created. The second integer must be nonzero for SURFACEs
-              	and this then specifies the density of the [u,v] map of coordinates
-              	produced (again evenly spaced in the parametric space). If a value of
-              	sizes is negative, then the fill is reversed for that coordinate.
-tess       	the resultant TESSELLATION object
+geom    the input object, may be a CURVE or SURFACE
+limits	the bounds of the tessellation (like range)
+sizes  	a set of 2 integers that specifies the size and dimensionality of the
+       	data. The second is assumed zero for a CURVE and in this case
+       	the first integer is the length of the number of evenly spaced (in t)
+       	points created. The second integer must be nonzero for SURFACEs
+       	and this then specifies the density of the [u,v] map of coordinates
+       	produced (again evenly spaced in the parametric space). If a value of
+       	sizes is negative, then the fill is reversed for that coordinate.
+tess   	the resultant TESSELLATION object
 
 --------------------------------------------------------------------------------------------
 --getTessGeom
@@ -703,13 +718,13 @@ icode = IG_getTessGeom(I*8 tess, I*4  sizes, CPTR     pxyz)
 
 Retrieves the data associated with the discretization of a geometry-based Object.
 
-tess       	the TESSELLATION object
-sizes      	a returned set of 2 integers that specifies the size and dimensionality
-              	of the data. If the second is zero, then it is from a CURVE and
-              	the first integer is the length of the number of [x,y,z] triads. If the 
-              	second integer is nonzero then the input data reflects a 2D map of 
-              	coordinates.
-pxyz      	the returned pointer to the suite of coordinate data.
+tess   	the TESSELLATION object
+sizes  	a returned set of 2 integers that specifies the size and dimensionality
+       	of the data. If the second is zero, then it is from a CURVE and
+       	the first integer is the length of the number of [x,y,z] triads. If the 
+       	second integer is nonzero then the input data reflects a 2D map of 
+       	coordinates.
+pxyz   	the returned pointer to the suite of coordinate data.
 
 --------------------------------------------------------------------------------------------
 --makeTessBody
@@ -719,17 +734,19 @@ icode = IG_makeTessBody(I*8 body, R*8     parms, I*8  tess)
 
 Creates a discretization object from a Topologic BODY Object.
 
-body     	the input object, may be a FACEBODY, SHEETBODY or 
-		SOLIDBODY.
-parms   	a set of 3 parameters that drive the EDGE discretization and the
-		FACE triangulation. The first is the maximum length of an EDGE
-		segment or triangle side (in physical space). A zero is flag that allows
-		for any length. The second is a curvature-based value that looks 
-		locally at the deviation between the discrete object and the underlying
-		geometry. Any deviation larger than the input value will cause the
-		tessellation to be enhanced in those regions. The third is		the maximum interior dihedral angle (in degrees) between triangle		facets (or Edge segment tangents for a WIREBODY tessellation),		note that a zero ignores this phase.
-tess       	the resultant TESSELLATION object where each EDGE in the BODY 
-		is discretized and each FACE is triangulated.
+body  	the input object, may be a FACEBODY, SHEETBODY or SOLIDBODY.
+parms 	a set of 3 parameters that drive the EDGE discretization and the
+	FACE triangulation. The first is the maximum length of an EDGE
+	segment or triangle side (in physical space). A zero is flag that allows
+	for any length. The second is a curvature-based value that looks 
+	locally at the deviation between the discrete object and the underlying
+	geometry. Any deviation larger than the input value will cause the
+	tessellation to be enhanced in those regions. The third is
+	the maximum interior dihedral angle (in degrees) between triangle
+	facets (or Edge segment tangents for a WIREBODY tessellation),
+	note that a zero ignores this phase.
+tess   	the resultant TESSELLATION object where each EDGE in the BODY 
+	is discretized and each FACE is triangulated.
 
 --------------------------------------------------------------------------------------------
 --remakeTess
@@ -942,6 +959,8 @@ oper       	1-Subtraction, 2-Intersection and 3-Fusion
 model    	the resultant MODEL object (this is because there may be multiple
               	bodies from either the subtraction or intersection operation).
 
+Note: This may now be called with src being a MODEL. In this case tool may be a SOLIDBODY for Intersection or a FACE/FACEBODY for Fusion. The input MODEL may contain anything, but must not have duplicate topology.
+
 --------------------------------------------------------------------------------------------
 --intersection
 
@@ -999,6 +1018,23 @@ result    	the resultant BODY object (with the same type as the input source
 		object)
 
 --------------------------------------------------------------------------------------------
+--hollowBody
+
+icode = EG_hollowBody(ego src, int nFace, ego *faces,
+                      double off, int join, ego *result)
+icode = IG_hollowBody(I*8 src, I*4 nFace, I*8  faces,
+                      R*8    off, I*4 join, I*8  result)
+
+A hollowed solid is built from an initial SOLIDBODY Object and a set of FACEs that initially bound the solid. These FACEs are removed and the remaining FACEs become the walls of the hollowed solid with the specified thickness.
+
+src         	the source BODY object
+nFace	the number of FACE objects to remove
+faces	list of FACE objects to fillet - nFace in len
+off	the wall thickness (offset) of the hollowed result
+join		0 - fillet-like corners, 1 - expanded corners
+result	 	the resultant SOLIDBODY object
+
+--------------------------------------------------------------------------------------------
 --rotate
 
 icode = EG_rotate(ego src, double angle, double *axis,
@@ -1031,6 +1067,19 @@ result    	the resultant BODY object (type is one greater than the input source
 		object)
 
 --------------------------------------------------------------------------------------------
+--sweep
+
+icode = EG_sweep(ego src, ego edge, ego *result)
+icode = IG_sweep(I*8 src, I*8 edge, I*8  result)
+
+Sweeps the source Object through the EDGE Object specified. If the source Object is either a LOOP or WIREBODY the result is a SHEETBODY. If the source is either a FACE or FACEBODY then the returned Object is a SOLIDBODY.
+
+src    	the source Object
+edge	the EDGE Object used as a guide curve (with limits) to sweep through
+result	the resultant BODY object (type is one greater than the input source
+		object)
+
+--------------------------------------------------------------------------------------------
 --loft
 
 icode = EG_loft(int nSection, ego *sections,
@@ -1043,9 +1092,9 @@ Lofts the input Objects to create a BODY Object (that has the type SOLIDBODY or 
 nSection	the number of Sections in the Loft Operation
 sections	list of WIREBODY or LOOP objects to Loft - nSection in len
 		the first and last can be NODEs
-options	bit flag that controls the loft:
-		1 - SOLIDBODY result (default is SHEETBODY)
-		2 - Ruled (linear) Loft (default is smooth)
+		options	bit flag that controls the loft:
+			1 - SOLIDBODY result (default is SHEETBODY)
+			2 - Ruled (linear) Loft (default is smooth)
 result    	the resultant BODY object
 
 --------------------------------------------------------------------------------------------

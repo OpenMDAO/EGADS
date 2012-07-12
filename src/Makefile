@@ -55,7 +55,8 @@ $(FOBJS):	$(IDIR)/egadsErrors.h egadsInternals.h \
 $(OBJSP):	$(IDIR)/egadsErrors.h egadsOCC.h egadsInternals.h \
 		$(IDIR)/egadsTypes.h egadsClasses.h
 .cpp.o:
-	$(CC) -c $(CPPOPT) $(DEFINE) $(INCS) -I$(IDIR) $< -o $(ODIR)/$@
+	$(CC) -c $(CPPOPT) $(DEFINE) -DCASVER=$(CASVER) $(INCS) -I$(IDIR) \
+		$< -o $(ODIR)/$@
 
 clean:
 	(cd $(ODIR); rm $(FOBJS) $(OBJSP) $(OBJS) )

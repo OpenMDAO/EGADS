@@ -27,10 +27,15 @@
   extern int EG_filletBody(const egObject *src, int nedge, 
                            const egObject **edges, double radius,
                                  egObject **result);
+  extern int EG_hollowBody(const egObject *src, int nface, 
+                           const egObject **faces, double off, int join,
+                                 egObject **result);
   extern int EG_extrude(const egObject *src, double dist, 
                         const double *dir, egObject **result);
   extern int EG_rotate(const egObject *src, double angle, 
                        const double *axis, egObject **result);
+  extern int EG_sweep(const egObject *src, const egObject *edge, 
+                            egObject **result);
   extern int EG_loft(int nsec, const egObject **secs, int opt, 
                                      egObject **result);
 
@@ -142,6 +147,34 @@ ig_filletbody_(INT8 *isrc, int *nedge, INT8 *edges, double *radius,
 
 int
 #ifdef WIN32
+IG_HOLLOWBODY (INT8 *isrc, int *nface, INT8 *faces, double *offset,
+               int *join, INT8 *irslt)
+#else
+ig_hollowbody_(INT8 *isrc, int *nface, INT8 *faces, double *offset,
+               int *join, INT8 *irslt)
+#endif
+{
+  int            i, stat;
+  egObject       *src, *result;
+  const egObject **objs = NULL;
+  
+  *irslt = 0;
+  if (*nface <= 0) return EGADS_RANGERR;
+  src  = (egObject *) *isrc;
+  objs = (const egObject **) EG_alloc(*nface*sizeof(egObject *));
+  if (objs == NULL) return EGADS_MALLOC;
+  for (i = 0; i < *nface; i++)
+    objs[i] = (egObject *) faces[i];
+
+  stat = EG_hollowBody(src, *nface, objs, *offset, *join, &result);
+  if (objs != NULL) EG_free((void *) objs);
+  if (stat == EGADS_SUCCESS) *irslt = (INT8) result;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
 IG_EXTRUDE (INT8 *isrc, double *dist, double *dir, INT8 *irslt)
 #else
 ig_extrude_(INT8 *isrc, double *dist, double *dir, INT8 *irslt)
@@ -171,6 +204,25 @@ ig_rotate_(INT8 *isrc, double *angle, double *axis, INT8 *irslt)
   *irslt = 0;
   src    = (egObject *) *isrc;
   stat   = EG_rotate(src, *angle, axis, &result);
+  if (stat == EGADS_SUCCESS) *irslt = (INT8) result;
+  return stat;
+}
+
+
+int
+#ifdef WIN32
+IG_SWEEP (INT8 *isrc, INT8 *iedge, INT8 *irslt)
+#else
+ig_sweep_(INT8 *isrc, INT8 *iedge, INT8 *irslt)
+#endif
+{
+  int      stat;
+  egObject *src, *edge, *result;
+  
+  *irslt = 0;
+  src    = (egObject *) *isrc;
+  edge   = (egObject *) *iedge;
+  stat   = EG_sweep(src, edge, &result);
   if (stat == EGADS_SUCCESS) *irslt = (INT8) result;
   return stat;
 }
