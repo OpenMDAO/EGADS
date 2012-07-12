@@ -15,8 +15,8 @@
 
 
 #define EGADSMAJOR     0
-#define EGADSMINOR    88
-#define EGADSPROP     EGADSprop: Revision 0.88
+#define EGADSMINOR    89
+#define EGADSPROP     EGADSprop: Revision 0.89
 
 #define MAGIC      98789
 
@@ -90,6 +90,7 @@
 #define INTERSECTION   2
 #define FUSION         3
 
+
 /* SOLID BODY TYPES */
 
 #define BOX      1
@@ -97,6 +98,12 @@
 #define CONE     3
 #define CYLINDER 4
 #define TORUS    5
+
+
+/* ISOCLINE TYPES */
+
+#define UISO	0
+#define VISO    1
 
 
 typedef struct {
