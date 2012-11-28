@@ -1,77 +1,41 @@
 #
-!include ..\include\$(GEM_ARCH)
-SDIR  = $(MAKEDIR)
-IDIR  = $(SDIR)\..\include
-!IFNDEF GEM_BLOC
-ODIR  = ..\..\$(GEM_ARCH)\obj
-LDIR  = ..\..\$(GEM_ARCH)\lib
-!ELSE
-ODIR  = $(GEM_BLOC)\obj
-LDIR  = $(GEM_BLOC)\lib
+!IFNDEF GEM_ROOT
+!ERROR GEM_ROOT must be set -- Please fix the environment...
 !ENDIF
 
-OBJSP = egadsGeom.obj egadsHLevel.obj egadsTopo.obj  egadsCopy.obj egadsIO.obj
-OBJS  = egadsBase.obj egadsMemory.obj egadsAttrs.obj egadsTess.obj \
-        egadsTris.obj egadsQuads.obj
-FOBJS = fgadsBase.obj fgadsMemory.obj fgadsAttrs.obj fgadsTess.obj \
-        fgadsGeom.obj fgadsHLevel.obj fgadsTopo.obj  fgv.obj
-
-default:	start ..\lib\egads.dll ..\lib\egadstatic.lib ..\lib\fgads.lib end
-
-start:
-	cd $(ODIR)
-	xcopy $(SDIR)\*.c   /Q /Y
-	xcopy $(SDIR)\*.cpp /Q /Y
-	xcopy $(SDIR)\*.h   /Q /Y
-	xcopy $(SDIR)\*.rc  /Q /Y
-	xcopy $(SDIR)\*.def /Q /Y
-
-..\lib\egadstatic.lib:	$(OBJSP) $(OBJS)
-	-del ..\lib\egadstatic.lib
-	lib /out:..\lib\egadstatic.lib $(OBJS) $(OBJSP)
-
-..\lib\egads.dll:	$(OBJSP) $(OBJS) egads.res
-	-del ..\lib\egads.dll ..\lib\egads.lib ..\lib\egads.exp
-	link /out:..\lib\egads.dll /dll /def:egads.def $(OBJSP) $(OBJS) \
-		egads.res $(LNKPTH) $(LIBS)
-	$(MCOMP) /manifest ..\lib\egads.dll.manifest \
-		/outputresource:..\lib\egads.dll;2
-
-..\lib\fgads.lib:	$(FOBJS)
-	-del ..\lib\fgads.lib
-	lib /out:..\lib\fgads.lib $(FOBJS)
-
-egads.res:	egads.rc
-	rc egads
-
-$(OBJS):	$(IDIR)\egadsErrors.h egadsInternals.h \
-		$(IDIR)\egadsTypes.h egadsTris.h
-.c.obj:
-	cl /c $(COPTS) $(DEFINE) /I. /I$(IDIR) $<
-
-$(FOBJS):	$(IDIR)\egadsErrors.h egadsInternals.h \
-		$(IDIR)\egadsTypes.h
-.c.obj:
-	cl /c $(COPTS) $(DEFINE) /I. /I$(IDIR) $<
-
-$(OBJSP):	$(IDIR)\egadsErrors.h egadsOCC.h egadsInternals.h \
-		$(IDIR)\egadsTypes.h egadsClasses.h
-.cpp.obj:
-	cl /c $(CPPOPT) $(DEFINE) /DCASVER=$(CASVER) $(INCS) /I. /I$(IDIR) $<
-
-end:
-	-del *.cpp *.c *.h *.rc *def *.manifest
-	cd $(SDIR)
+all:
+	cd wvServer
+	nmake -f NMakefile
+	cd ..
+	cd EGADS\src
+	nmake -f NMakefile
+	cd ..\examples
+	nmake -f egads2cart.mak
+	nmake -f vGeom.mak
+	nmake -f vTess.mak
+	cd ..
+	@echo  *** Completed! ***
 
 clean:
-	cd $(ODIR)
-	-del $(FOBJS) $(OBJSP) $(OBJS)
-	cd $(SDIR)
+	cd wvServer
+	nmake -f NMakefile clean
+	cd ..
+	cd EGADS\src
+	nmake -f NMakefile clean
+	cd ..\examples
+	nmake -f egads2cart.mak clean
+	nmake -f vGeom.mak clean
+	nmake -f vTess.mak clean
+	cd ..
 
 cleanall:
-	-del $(LDIR)\egads.dll $(LDIR)\egads.lib $(LDIR)\egads.exp
-	-del $(LDIR)\egads.res $(LDIR)\egads.dll.manifest
-	-del $(LDIR)\egadstatic.lib $(LDIR)\fgads.lib
-	cd $(ODIR)
-	-del $(FOBJS) $(OBJSP) $(OBJS)
-	cd $(SDIR)
+	cd wvServer
+	nmake -f NMakefile cleanall
+	cd ..
+	cd EGADS\src
+	nmake -f NMakefile cleanall
+	cd ..\examples
+	nmake -f egads2cart.mak cleanall
+	nmake -f vGeom.mak cleanall
+	nmake -f vTess.mak cleanall
+	cd ..
