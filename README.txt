@@ -1,143 +1,161 @@
-			EGADS REVISION 0.89 DISTRIBUTION
-		  Electronic Geometry Aircraft Design System
+		EGADS: Engineering Geometry Aerospace Design System 
+					Rev 1.0
 
 
 1. Prerequisites
 
-	The only significant prerequisite for EGADS is OpenCASCADE at release
-6.3.0 or greater (which now includes the OpenCASCADE Community Edition -- OCE).
+	The most significant prerequisite for this software is OpenCASCADE at 
+release 6.3.0 or greater (which now includes the OpenCASCADE Community Edition).
 This can be found at http://www.opencascade.org/getocc/download/loadocc or
 https://github.com/tpaviot/oce. Prebuilt versions are available at these sites
-for Windows using various versions of Visual Studio and MAC OSX at 64-bits. 
-Any other configuration must be built from source (unless you are using a 
-Debian variant of LINUX, such as Ubuntu, where there are available prebuilt 
+for Windows using various versions of Visual Studio and for MAC OSX at 64-bits.
+Any other configuration must be built from source (unless you are using a
+Debian variant of LINUX, such as Ubuntu, where there are available prebuilt
 packages as part of the LINUX distribution). Note that 6.5 is recommended but
-there are SBO robustness problems at 6.5.3.
+there are SBO robustness problems at 6.5.3, so currently ESP works best with
+6.5.2.
 
-1.1 EGADS Source Distribution Layout
-
-README.txt - this file
-docs       - documentation 
-include    - headers used by EGADS and those used to build EGADS apps
-src        - source files
-test       - test and example code
-
-1.2 EGADS Binary Distribution
-
-	Some test and example codes use graphics through a non-Open Source
-library: GV (the Geometry Viewer). The library is made available as part
-of the current EGADS distribution but will disappear in the future. A
-separate download (in the form of a g'zipped tarball) is required which 
-when unpacked also provides a target for the EGADS build. The tarball is
-located at http://openmdao.org/releases/misc/EGADSbin.tgz. The tar image 
-"EGADSbin.tgz" contains the following directories:
-
-DARWIN   - binary target for OSX
-DARWIN64 - binary target for OSX 64-bit
-LINUX    - binary target for LINUX
-LINUX64  - binary target for LINUX 64-bit
-WIN32    - binary target for 32-bit Windows
-WIN64    - binary target for 64-bit Windows
-
-Each directory has subdirectories "lib", "obj" and "test".
+	Another prerequisite is a WebGL/Websocket capable Browser. In general
+these include Mozilla's FireFox and Google Chrome. Apple's Safari works at
+rev 6.0 or greater. Note that there is some problems with Intel Graphics and
+some WebGL Browsers with Linux. Also, for LINUX "zlib" development is required.
 
 
-2. Building EGADS
+2. Building the Software
 
-	EGADS does not use the typical "configure-make-install" procedure as
-seen for many LINUX packages. Simple Make (or NMake on Windows) files are used.
-These are driven by a small number of environment variables as seen below.
+	The config subdirectory contains scripts that need to be used to
+generate the environment both to build and run the software here. There are 
+two different procedures based on the OS:
 
-2.1 Build Environment Variables
+2.1 Linux and Mac OSX
 
-	GEM_ARCH - tells EGADS the base-level OS/architecture for the target:
-			DARWIN   - MAC OSX 10.5 or greater at 32-bits
-			DARWIN64 - MAC OSX 10.5 or greater at 64-bits
-			LINUX    - LINUX at 32-bits
-			LINUX64  - LINUX at 64-bits
-			WIN32    - XP, Vista or Windows7 at 32-bits
-			WIN64    - XP, Vista or Windows7 at 64-bits
-        GEM_BLOC - the build location (path) for the appropriate binary 
-		   target. This must must contain the "lib", "obj" and 
-		   "test" subdirectories for GEM_ARCH.
-	CASROOT  - the install path to find OpenCASCADE (which typically has
-		   a "bin", "inc", "lib" and "src" subdirectories). For 
-		   Debian installs this may be "/usr/include/opencascade".
-		   For MAC OSX OCE with the install in the default location
-		   this variable is set to "/usr/local".
-	CASARCH  - this is the string that OpenCASCADE internally uses for
-		   the system architecture and is usually a subdirectory
-		   of CASROOT. For OCE distributions supporting a single
-		   architecture this subdirectory may not exist (in this
-		   case set the variable to "."). On Debian machines this 
-		   variable is usually "Linux".
-	CASREV   - the major.minor revision of OpenCASCADE. For example:
-		   "6.3" or "6.5".
-	CASVER	 - the full version of OpenCASCADE without "dots". For example:
-	           "652".
+	The configuration is built using the path where the OpenCASCADE runtime
+distribution can be found. The pointer size (32 or 64bit) is determined from 
+the shared objects/dynamic libraries found in the distribution. This path can 
+be located in an OpenCASCADE distribution by looking for a subdirectory that 
+includes an "inc" or "include" directory and either a "lib" or "$ARCH/lib" 
+(where $ARCH is the name of your architecture) directory.  For Debian prebuilt 
+packaged installs this location is "/usr/include/opencascade".  Once that is 
+found, execute the commands:
 
-2.2 Notes on building FORTRAN bindings:
+	% cd $DISTROOT/config
+	% makeEnv **name_of_directory_containing_inc_and_lib**
 
-	Both gfortran & ifort (the Intel FORTRAN compiler) are supported
-for LINUX and the MAC, but only ifort support is available under Windows.
-The build of EGADS is independent of the FORTRAN compiler used (if any).
-The test codes (in the "test"  EGADS directory) that use FORTRAN must 
-have a compiler. The assumption is that the complier is gfortran (unless
-Windows). This can be simply modified by editing the configuration files
-in the EGADS "include" subdirectory. These files have the name used by 
-the environment variable GEM_ARCH. There are 2 sets of assignments for 
-both FCOMP and FOPTS where the one for ifort is commented out.
+An optional second argument to makeEnv is required if the distribution of 
+OpenCASCADE has multiple architectures. In this case it is the subdirectory 
+name that contains the libraries for the build of interest (CASARCH).
+
+	This procedure produces 2 files at the top level: GEMenv.sh and
+GEMenv.csh. These are the environments for both sh (bash) and csh (tcsh)
+respectively. The appropriate file can be "source"d or included in the
+user's startup scripts. This must be done before either building and/or
+running the software.  For example, if using the csh or tcsh:
+
+	% cd $DISTROOT
+	% source GEMenv.csh
+
+or if using bash:
+
+	$ cd $DISTROOT
+	$ source GEMenv.sh
+
+
+2.2 Windows Configuration
+
+	The configuration is built from the path where where the OpenCASCADE 
+runtime distribution can be found. The pointer size (32 or 64bit) is determined
+from the MS Visual Studio environment in a command shell (the C/C++ compiler
+is run). This is executed simply by going to the config subdirectory and 
+executing the script "winEnv" in a bash shell (run from the command window):
+
+	C:\> cd $DISTROOT\config
+	C:\> bash winEnv D:\OpenCASCADE6.5.2\ros
+
+winEnv (like makeEnv) has an optional second argument that is only required 
+if the distribution of OpenCASCADE has multiple architectures. In this case 
+it is the subdirectory name that contains the libraries for the build of 
+interest (CASARCH).
+
+	This procedure produces a single file at the top level: GEMenv.bat.
+This file needs to be executed before either building and/or running the 
+software.  This is done with:
+
+	C:\> cd $DISTROOT
+	C:\> GEMenv
 
 2.3 The Build
 
-	Once the above is all set, just go into the EGADS "src" directory 
-and type: make.
-	For Windows, there are no MSVS project files. It is assumed that a
-"command window" is open and the environment has been setup for the 
-appropriate compiler(s). There is a "make.bat" that executes "nmake".
+	For any of the operating systems, after properly setting the
+environment in the command window (or shell), follow this simple procedure:
 
-2.4 The Tests
+	% cd $DISTROOT/src
+	% make
 
-	The small test examples can be made by executing "make" (or "nmake"
-when using Visual Studio) from within the "test" EGADS directory. This 
-can be simply done by: "make -f XYZ.make" (or "nmake -f XYZ.mak" at a
-command prompt under Windows). Where XYZ is the name of any of the 
-test/example codes.
+or
 
-2.5 Windows & Visual Studio
+	C:\> cd $DISTROOT\src
+	C:\> make
 
-	Building on Windows is challenging with prebuilt binaries. This is
-because there are no "system libraries" and Microsoft (in its infinite
-wisdom) changes the run-time components for each release of Visual Studio. 
-One can mix components (with care) if things are primarily in the form of 
-DLLs. Therefore it is usually important to match the compiler (and compiler
-options) with any larger build. The build for 32-bit Windows will work with 
-OpenCASCADE 6.3 as delivered from the OpenCASCADE site (this uses MSVS 2003, 
-also known as Version 7.1). Because the prebuilt package from OpenCASCADE for 
-6.5 uses MSVS 2005 (Version 8.0) which does not work on Windows7, the example 
-build uses OCE for MSVS 2008 (Version 9.0).
-	Please contact Bob Haimes for Geometry Viewer Libraries that may be 
-required for other versions of Visual Studio.
+You can use "make clean" which will clean up all object modules or 
+"make cleanall" to remove all objects, executables, libraries, shared objects
+and dynamic libraries.
 
 
-3. Running an EGADS Application
+3.0 Running
 
-	Before an EGADS application can be executed, the dynamic loader must
-be told where to find the required components. This includes the paths for
-both OpenCASCADE and EGADS. The dynamic loader is informed where to look by 
-environment variable (but the name differs depending on the OS):
+3.1 vTess and wvClient
 
-	MAC OSX		DYLD_LIBRARY_PATH (colon is the separator)
-	LINUX		LD_LIBRARY_PATH   (colon is the separator)
-	WIN32/64	PATH          (semicolon is the separator)
+To start vTess there are two steps: (1) start the "server", in this case vTess
+and (2) start the  "browser". This can be done in a variety of ways, but the 
+two most common follow.  
 
-For example, this can be done on Windows at the "command window" or for a
-"bat" file with the command:
+3.1.1 Procedure 1: have wv automatically started from vTess
 
-  % set PATH=%CASROOT%\%CASARCH%\bin;%GEM_BLOC%\lib;%PATH%
+If it exists, the WV_START environment variable contains the command that 
+should be executed to start the browser once the server has created its scene 
+graph.  On a Mac, you can set this variable with commands such as
 
-For an OSX/OCE install (in the default location) it may be:
+	% setenv WV_START "open -a /Applications/Firefox.app ../wvClient/wv.html"
 
-  % export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH  -or-
-  % setenv DYLD_LIBRARY_PATH /usr/local/lib:$DYLD_LIBRARY_PATH
+or
 
+	% export WV_START="open -a /Applications/Firefox.app ../wvClient/wv.html"
+
+depending on the shell in use.  The commands in other operating systems will 
+differ slightly, depending on how the browser can be started from the command 
+line.
+
+To run the program, use:
+
+         % cd $DISTROOT/bin
+         % vTess ../data/Piston.BRep
+
+3.1.2 Procedure 2: start the browser manually
+
+If the WV_START environment variable does not exist, issuing the commands:
+
+	% cd $DISTROOT/bin
+	% vTess ../data/Piston.BRep
+
+will start the server.  The last lines of output from vTess tells the user 
+that the server is waiting for a browser to attach to it.  This can be done by 
+starting a browser (FireFox and Google Chrome have been tested) and loading the 
+file:
+
+        $DISTROOT/wvClient/wv.html
+
+Whether you used procedure 1 or 2, as long as the browser stays connected to 
+vTess, vTess will stay alive and handle requests sent to it from the browser. 
+Once the last browser that is connected to vTess exits, vTess will shut down.
+
+Once the browser starts, you will be prompted for a "hostname:port". Make the
+appropriate response depending on the network situation.
+
+
+3.2 egads2cart
+
+	This example takes an input geometry file and generates a Cart3D "tri"
+file. The acceptable input is STEP, EGADS or OpenCASCADE BRep files.
+
+        % cd $DISTROOT/bin
+	% egads2cart geomFilePath [angle relSide relSag]

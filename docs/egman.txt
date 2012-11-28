@@ -1010,13 +1010,31 @@ icode = IG_filletBody(I*8 src, I*4 nEdge, I*8  edges,
 
 Fillets the EDGEs on the source BODY Object (that has the type SOLIDBODY or SHEETBODY).
 
-src         	the source BODY object
+src     the source BODY object
 nEdge	the number of EDGE objects to fillet
 edges	list of EDGE object to fillet - nEdge in len
 radius	the radius of the fillets created
-result    	the resultant BODY object (with the same type as the input source
-		object)
+result  the resultant BODY object (with the same type as the input source object)
 
+--------------------------------------------------------------------------------------------
+--chamferBody
+
+icode = EG_chamferBody(ego src, int nEdge, ego *edges,
+                       ego *faces,  double dis1,
+                       double dis2, ego *result)
+icode = IG_chamferBody(I*8 src, I*4 nEdge, I*8  edges,
+                       I*8  faces,  R*8    dis1, 
+                       R*8  dis2,   I*8  result)
+
+Chamfers the EDGEs on the source BODY Object (that has the type SOLIDBODY or SHEETBODY).
+
+src     the source BODY object
+nEdge   the number of EDGE objects to chamfer
+edges   list of EDGE objects to chamfer - nEdge in len
+faces   list of FACE objects to measure dis1 from - nEdge in len
+dis1    the distance from the FACE object to chamfer
+dis2    the distance from the other FACE to chamfer
+result  the resultant BODY object (with the same type as the input source object)
 --------------------------------------------------------------------------------------------
 --hollowBody
 
@@ -1027,12 +1045,12 @@ icode = IG_hollowBody(I*8 src, I*4 nFace, I*8  faces,
 
 A hollowed solid is built from an initial SOLIDBODY Object and a set of FACEs that initially bound the solid. These FACEs are removed and the remaining FACEs become the walls of the hollowed solid with the specified thickness.
 
-src         	the source BODY object
-nFace	the number of FACE objects to remove
-faces	list of FACE objects to fillet - nFace in len
-off	the wall thickness (offset) of the hollowed result
-join		0 - fillet-like corners, 1 - expanded corners
-result	 	the resultant SOLIDBODY object
+src     the source BODY object
+nFace   the number of FACE objects to remove
+faces   list of FACE objects to fillet - nFace in len
+off     the wall thickness (offset) of the hollowed result
+join    0 - fillet-like corners, 1 - expanded corners
+result  the resultant SOLIDBODY object
 
 --------------------------------------------------------------------------------------------
 --rotate
