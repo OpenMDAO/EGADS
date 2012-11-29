@@ -2119,6 +2119,9 @@ wv_removeGPrim(wvContext *cntxt, int index)
 }
 
 
+/* *********************** Server Functions ************************* */
+
+
 static void
 wv_writeBuf(void *wsi, unsigned char *buf, int npack, int *iBuf)
 {
@@ -2294,6 +2297,21 @@ wv_writeGPrim(wvGPrim *gp, void *wsi, unsigned char *buf, int *iBuf)
 }
 
 
+/* sends the appropriate message(s) to an individual client (browser)
+ *
+ * should be called by the server for every current client instance
+ *
+ * where: wsi   - blind pointer that gets passed on to the send function
+ *        cntxt - the wvContext we are using
+ *        buf   - the allocated buffer to pack the message
+ *        flag  - what to do:
+ *                 1 - send init message
+ *                 0 - send only gPrim updates
+ *                -1 - send the first suite of gPrims
+ *
+ * uses the call-back wv_sendBinaryData(wsi, buf, len) to send the packets
+ *
+ */
 void
 wv_sendGPrim(void *wsi, wvContext *cntxt, unsigned char *buf, int flag)
 {
@@ -2590,4 +2608,54 @@ wv_sendGPrim(void *wsi, wvContext *cntxt, unsigned char *buf, int flag)
   if (wv_sendBinaryData(wsi, buf, iBuf) < 0)
     fprintf(stderr, "ERROR Sending Binary Data");
 
+}
+
+
+/* 
+ * sets the thread marker and gets ready for sends
+ */
+void
+wv_prepareForSends(wvContext *cntxt)
+{
+  if (cntxt == NULL) return;
+
+  while (cntxt->dataAccess != 0) usleep(1000);
+  cntxt->ioAccess = 1;
+}
+
+
+/* marks the data after all message(s) have been sent to the browser(s)
+ *
+ * should be called by the server after looping over active clients 
+ *
+ * where: cntxt - the wvContext we are using
+ *
+ */
+void
+wv_finishSends(wvContext *cntxt)
+{
+  int i, j;
+  
+  if (cntxt->gPrims == NULL) {
+    cntxt->ioAccess = 0;
+    return;
+  }
+
+  for (i = 0; i < cntxt->nGPrim; i++)
+    if ((cntxt->gPrims[i].updateFlg&WV_DELETE) == 0)
+      cntxt->gPrims[i].updateFlg = 0;
+  
+  /* remove deleted GPrims */
+  for (i = cntxt->nGPrim-1; i >= 0; i--) {
+    if (cntxt->gPrims[i].updateFlg != (WV_DELETE|WV_DONE)) continue;
+    wv_freeGPrim(cntxt->gPrims[i]);
+  }
+  for (i = j = 0; j < cntxt->nGPrim; j++) {
+    if (cntxt->gPrims[j].updateFlg == (WV_DELETE|WV_DONE)) continue;
+    cntxt->gPrims[i] = cntxt->gPrims[j];
+    i++;
+  }
+  cntxt->nGPrim   = i;
+  
+  cntxt->ioAccess = 0;
 }

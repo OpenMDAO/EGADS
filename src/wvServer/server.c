@@ -35,6 +35,8 @@
                             int flag);
   extern void  wv_freeGPrim(wvGPrim gprim);
   extern void  wv_destroyContext(wvContext **context);
+  extern void  wv_prepareForSends(wvContext *context);
+  extern void  wv_finishSends(wvContext *context);
 
   /* UI test message call-back */
   extern void  browserMessage(struct libwebsocket *wsi, char *buf, int len);
@@ -375,7 +377,6 @@ callback_ui_text(struct libwebsocket_context *context,
 
 static void serverThread(wvServer *server)
 {
-        int           i, j;
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 128 +
                           LWS_SEND_BUFFER_POST_PADDING];
 
@@ -386,9 +387,7 @@ static void serverThread(wvServer *server)
                 usleep(50000);
                 libwebsocket_service(server->WScontext, 0);
 
-                if (server->WVcontext == NULL) continue;
-                while (server->WVcontext->dataAccess != 0) usleep(1000);
-                server->WVcontext->ioAccess = 1;
+                wv_prepareForSends(server->WVcontext);
 
 		/*
 		 * This broadcasts to all gprim-binary-protocol connections
@@ -403,28 +402,7 @@ static void serverThread(wvServer *server)
                                         &buf[LWS_SEND_BUFFER_PRE_PADDING], 1);
                 
                 /* clean up after all has been sent */
-
-                if (server->WVcontext->gPrims == NULL) {
-                  server->WVcontext->ioAccess = 0;
-                  continue;
-                }
-                for (i = 0; i < server->WVcontext->nGPrim; i++)
-                        if ((server->WVcontext->gPrims[i].updateFlg&WV_DELETE) == 0)
-                                server->WVcontext->gPrims[i].updateFlg = 0;
-
-                /* remove deleted GPrims */
-                for (i = server->WVcontext->nGPrim-1; i >= 0; i--) {
-                        if (server->WVcontext->gPrims[i].updateFlg != (WV_DELETE|WV_DONE)) continue;
-                        wv_freeGPrim(server->WVcontext->gPrims[i]);
-                }
-                for (i = j = 0; j < server->WVcontext->nGPrim; j++) {
-                        if (server->WVcontext->gPrims[j].updateFlg == (WV_DELETE|WV_DONE)) continue;
-                        server->WVcontext->gPrims[i] = server->WVcontext->gPrims[j];
-                        i++;
-                }
-                server->WVcontext->nGPrim   = i;
-
-                server->WVcontext->ioAccess = 0;
+                wv_finishSends(server->WVcontext);
 	}
         
         /* mark the thread as down */
@@ -563,6 +541,7 @@ wv_broadcastText(char *text)
 }
 
 
+int
 wv_sendBinaryData(struct libwebsocket *wsi, unsigned char *buf, int iBuf)
 {
   return libwebsocket_write(wsi, buf, iBuf, LWS_WRITE_BINARY);
