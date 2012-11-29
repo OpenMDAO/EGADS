@@ -25,14 +25,14 @@
 #endif
 
   /* prototypes used & not in the above */
-  extern /*@null@*/ /*@out@*/ /*@only@*/ 
-         void *wv_alloc(int nbytes);
+  extern /*@null@*/ /*@out@*/ /*@only@*/ void *wv_alloc(int nbytes);
   extern /*@null@*/ /*@only@*/ 
-         void *wv_realloc(/*@null@*/ /*@only@*/ /*@returned@*/ void *ptr, int nbytes);
+         void *wv_realloc(/*@null@*/ /*@only@*/ /*@returned@*/ void *ptr, 
+                          int nbytes);
   extern void  wv_free(/*@null@*/ /*@only@*/ void *ptr);
   
-  extern void  wv_sendGPrim(struct libwebsocket *wsi, wvContext *cntxt, 
-                            unsigned char *xbuf, int flag);
+  extern void  wv_sendGPrim(void *wsi, wvContext *cntxt, unsigned char *buf, 
+                            int flag);
   extern void  wv_freeGPrim(wvGPrim gprim);
   extern void  wv_destroyContext(wvContext **context);
 
@@ -242,18 +242,21 @@ callback_gprim_binary(struct libwebsocket_context *context,
                 if (pss->status == 0) {
                   if (servers[slot].WVcontext == NULL) return 0;
                   /* send the init packet */
-                  wv_sendGPrim(wsi, servers[slot].WVcontext,  
-                                    servers[slot].xbuf,  1);
+                  wv_sendGPrim(wsi, servers[slot].WVcontext, 
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                                1);
                   pss->status++;
                 } else if (pss->status == 1) {
                   /* send the first suite of gPrims */
-                  wv_sendGPrim(wsi, servers[slot].WVcontext, 
-                                    servers[slot].xbuf, -1);
+                  wv_sendGPrim(wsi, servers[slot].WVcontext,
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                               -1);
                   pss->status++;
                 } else {
                   /* send the updated suite of gPrims */
                   wv_sendGPrim(wsi, servers[slot].WVcontext, 
-                                    servers[slot].xbuf,  0);
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                                0);
                 }
 		break;
 
@@ -559,6 +562,11 @@ wv_broadcastText(char *text)
   wv_free(message);
 }
 
+
+wv_sendBinaryData(struct libwebsocket *wsi, unsigned char *buf, int iBuf)
+{
+  return libwebsocket_write(wsi, buf, iBuf, LWS_WRITE_BINARY);
+}
 
 
 #ifdef STANDALONE
