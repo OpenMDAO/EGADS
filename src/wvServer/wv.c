@@ -16,11 +16,8 @@
 #include <unistd.h>
 
 #include "wsss.h"
-#include "libwebsockets.h"
 
-
-  extern struct libwebsocket_protocols *wv_protocols;
-
+  extern wv_sendBinaryData(void *, unsigned char *, int);
 
 
 /*@null@*/ /*@out@*/ /*@only@*/ void *
@@ -2122,9 +2119,11 @@ wv_removeGPrim(wvContext *cntxt, int index)
 }
 
 
+/* *********************** Server Functions ************************* */
+
+
 static void
-wv_writeBuf(struct libwebsocket *wsi, unsigned char *buf, 
-            int npack, int *iBuf)
+wv_writeBuf(void *wsi, unsigned char *buf, int npack, int *iBuf)
 {
   if (*iBuf+npack <= BUFLEN-4) return;
   
@@ -2134,15 +2133,14 @@ wv_writeBuf(struct libwebsocket *wsi, unsigned char *buf,
   buf[*iBuf+2] = 0;
   buf[*iBuf+3] = 0;             /* continue opcode */
   *iBuf += 4;
-  if (libwebsocket_write(wsi, buf, *iBuf, LWS_WRITE_BINARY) < 0) 
-    fprintf(stderr, "ERROR writing to socket");   
+  if (wv_sendBinaryData(wsi, buf, *iBuf) < 0)
+    fprintf(stderr, "ERROR Sending Binary Data");
   *iBuf = 0;
 }
 
 
 static void
-wv_writeGPrim(wvGPrim *gp, struct libwebsocket *wsi, unsigned char *buf, 
-              int *iBuf)
+wv_writeGPrim(wvGPrim *gp, void *wsi, unsigned char *buf, int *iBuf)
 {
   int            i, j, n, npack, i4;
   unsigned char  vflag;
@@ -2299,15 +2297,28 @@ wv_writeGPrim(wvGPrim *gp, struct libwebsocket *wsi, unsigned char *buf,
 }
 
 
+/* sends the appropriate message(s) to an individual client (browser)
+ *
+ * should be called by the server for every current client instance
+ *
+ * where: wsi   - blind pointer that gets passed on to the send function
+ *        cntxt - the wvContext we are using
+ *        buf   - the allocated buffer to pack the message
+ *        flag  - what to do:
+ *                 1 - send init message
+ *                 0 - send only gPrim updates
+ *                -1 - send the first suite of gPrims
+ *
+ * uses the call-back wv_sendBinaryData(wsi, buf, len) to send the packets
+ *
+ */
 void
-wv_sendGPrim(struct libwebsocket *wsi, wvContext *cntxt, 
-             unsigned char *xbuf, int flag)
+wv_sendGPrim(void *wsi, wvContext *cntxt, unsigned char *buf, int flag)
 {
   int            i, j, k, iBuf, npack, i4;
   unsigned short *s2 = (unsigned short *) &i4;
   unsigned char  *c1 = (unsigned char *)  &i4;
   wvGPrim        *gp;
-  unsigned char  *buf = &xbuf[LWS_SEND_BUFFER_PRE_PADDING];
   
   /* init message */
   if (flag == 1) {
@@ -2326,8 +2337,8 @@ wv_sendGPrim(struct libwebsocket *wsi, wvContext *cntxt,
     buf[53] = 0;
     buf[54] = 0;
     buf[55] = 7;                        /* eof opcode */
-    if (libwebsocket_write(wsi, buf, 56, LWS_WRITE_BINARY) < 0) 
-      fprintf(stderr, "ERROR writing to socket");
+    if (wv_sendBinaryData(wsi, buf, 56) < 0)
+      fprintf(stderr, "ERROR sending Binary Data");
     return;
   }
   if (cntxt->gPrims == NULL) return;
@@ -2593,8 +2604,58 @@ wv_sendGPrim(struct libwebsocket *wsi, wvContext *cntxt,
   buf[iBuf+1] = 0;
   buf[iBuf+2] = 0;
   buf[iBuf+3] = 7;                      /* eof opcode */
-  iBuf += 4;
-  if (libwebsocket_write(wsi, buf, iBuf, LWS_WRITE_BINARY) < 0) 
-    fprintf(stderr, "ERROR writing to socket");   
+  iBuf       += 4;
+  if (wv_sendBinaryData(wsi, buf, iBuf) < 0)
+    fprintf(stderr, "ERROR Sending Binary Data");
 
+}
+
+
+/* 
+ * sets the thread marker and gets ready for sends
+ */
+void
+wv_prepareForSends(wvContext *cntxt)
+{
+  if (cntxt == NULL) return;
+
+  while (cntxt->dataAccess != 0) usleep(1000);
+  cntxt->ioAccess = 1;
+}
+
+
+/* marks the data after all message(s) have been sent to the browser(s)
+ *
+ * should be called by the server after looping over active clients 
+ *
+ * where: cntxt - the wvContext we are using
+ *
+ */
+void
+wv_finishSends(wvContext *cntxt)
+{
+  int i, j;
+  
+  if (cntxt->gPrims == NULL) {
+    cntxt->ioAccess = 0;
+    return;
+  }
+
+  for (i = 0; i < cntxt->nGPrim; i++)
+    if ((cntxt->gPrims[i].updateFlg&WV_DELETE) == 0)
+      cntxt->gPrims[i].updateFlg = 0;
+  
+  /* remove deleted GPrims */
+  for (i = cntxt->nGPrim-1; i >= 0; i--) {
+    if (cntxt->gPrims[i].updateFlg != (WV_DELETE|WV_DONE)) continue;
+    wv_freeGPrim(cntxt->gPrims[i]);
+  }
+  for (i = j = 0; j < cntxt->nGPrim; j++) {
+    if (cntxt->gPrims[j].updateFlg == (WV_DELETE|WV_DONE)) continue;
+    cntxt->gPrims[i] = cntxt->gPrims[j];
+    i++;
+  }
+  cntxt->nGPrim   = i;
+  
+  cntxt->ioAccess = 0;
 }
