@@ -25,16 +25,18 @@
 #endif
 
   /* prototypes used & not in the above */
-  extern /*@null@*/ /*@out@*/ /*@only@*/ 
-         void *wv_alloc(int nbytes);
+  extern /*@null@*/ /*@out@*/ /*@only@*/ void *wv_alloc(int nbytes);
   extern /*@null@*/ /*@only@*/ 
-         void *wv_realloc(/*@null@*/ /*@only@*/ /*@returned@*/ void *ptr, int nbytes);
+         void *wv_realloc(/*@null@*/ /*@only@*/ /*@returned@*/ void *ptr, 
+                          int nbytes);
   extern void  wv_free(/*@null@*/ /*@only@*/ void *ptr);
   
-  extern void  wv_sendGPrim(struct libwebsocket *wsi, wvContext *cntxt, 
-                            unsigned char *xbuf, int flag);
+  extern void  wv_sendGPrim(void *wsi, wvContext *cntxt, unsigned char *buf, 
+                            int flag);
   extern void  wv_freeGPrim(wvGPrim gprim);
   extern void  wv_destroyContext(wvContext **context);
+  extern void  wv_prepareForSends(wvContext *context);
+  extern void  wv_finishSends(wvContext *context);
 
   /* UI test message call-back */
   extern void  browserMessage(struct libwebsocket *wsi, char *buf, int len);
@@ -242,18 +244,21 @@ callback_gprim_binary(struct libwebsocket_context *context,
                 if (pss->status == 0) {
                   if (servers[slot].WVcontext == NULL) return 0;
                   /* send the init packet */
-                  wv_sendGPrim(wsi, servers[slot].WVcontext,  
-                                    servers[slot].xbuf,  1);
+                  wv_sendGPrim(wsi, servers[slot].WVcontext, 
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                                1);
                   pss->status++;
                 } else if (pss->status == 1) {
                   /* send the first suite of gPrims */
-                  wv_sendGPrim(wsi, servers[slot].WVcontext, 
-                                    servers[slot].xbuf, -1);
+                  wv_sendGPrim(wsi, servers[slot].WVcontext,
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                               -1);
                   pss->status++;
                 } else {
                   /* send the updated suite of gPrims */
                   wv_sendGPrim(wsi, servers[slot].WVcontext, 
-                                    servers[slot].xbuf,  0);
+                               &servers[slot].xbuf[LWS_SEND_BUFFER_PRE_PADDING],
+                                0);
                 }
 		break;
 
@@ -372,7 +377,6 @@ callback_ui_text(struct libwebsocket_context *context,
 
 static void serverThread(wvServer *server)
 {
-        int           i, j;
 	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 128 +
                           LWS_SEND_BUFFER_POST_PADDING];
 
@@ -383,9 +387,7 @@ static void serverThread(wvServer *server)
                 usleep(50000);
                 libwebsocket_service(server->WScontext, 0);
 
-                if (server->WVcontext == NULL) continue;
-                while (server->WVcontext->dataAccess != 0) usleep(1000);
-                server->WVcontext->ioAccess = 1;
+                wv_prepareForSends(server->WVcontext);
 
 		/*
 		 * This broadcasts to all gprim-binary-protocol connections
@@ -400,28 +402,7 @@ static void serverThread(wvServer *server)
                                         &buf[LWS_SEND_BUFFER_PRE_PADDING], 1);
                 
                 /* clean up after all has been sent */
-
-                if (server->WVcontext->gPrims == NULL) {
-                  server->WVcontext->ioAccess = 0;
-                  continue;
-                }
-                for (i = 0; i < server->WVcontext->nGPrim; i++)
-                        if ((server->WVcontext->gPrims[i].updateFlg&WV_DELETE) == 0)
-                                server->WVcontext->gPrims[i].updateFlg = 0;
-
-                /* remove deleted GPrims */
-                for (i = server->WVcontext->nGPrim-1; i >= 0; i--) {
-                        if (server->WVcontext->gPrims[i].updateFlg != (WV_DELETE|WV_DONE)) continue;
-                        wv_freeGPrim(server->WVcontext->gPrims[i]);
-                }
-                for (i = j = 0; j < server->WVcontext->nGPrim; j++) {
-                        if (server->WVcontext->gPrims[j].updateFlg == (WV_DELETE|WV_DONE)) continue;
-                        server->WVcontext->gPrims[i] = server->WVcontext->gPrims[j];
-                        i++;
-                }
-                server->WVcontext->nGPrim   = i;
-
-                server->WVcontext->ioAccess = 0;
+                wv_finishSends(server->WVcontext);
 	}
         
         /* mark the thread as down */
@@ -559,6 +540,12 @@ wv_broadcastText(char *text)
   wv_free(message);
 }
 
+
+int
+wv_sendBinaryData(struct libwebsocket *wsi, unsigned char *buf, int iBuf)
+{
+  return libwebsocket_write(wsi, buf, iBuf, LWS_WRITE_BINARY);
+}
 
 
 #ifdef STANDALONE
