@@ -24,6 +24,12 @@
 #include "wsserver.h"
 
 
+#define MAXFACE 20
+
+/* from util subdirectory -- not in egads.h! */
+extern int EG_retessFaces(ego tess, int nf, int *iface, double *params);
+
+
 /* structure to hold on to the EGADS triangulation per Body */
 typedef struct {
   ego *faces;
@@ -49,7 +55,7 @@ int main(int argc, char *argv[])
 {
   int          i, j, k, m, n, ibody, stat, oclass, mtype, len, ntri, sum;
   int          nloops, nseg, nledges, *segs, *lsenses, *senses, *esenses;
-  int          nh, *heads;
+  int          nh, *heads, ifaces[MAXFACE];
   const int    *tris, *tric, *ptype, *pindex;
   float        arg, color[3], *lsegs;
   double       box[6], size;
@@ -160,6 +166,27 @@ int main(int argc, char *argv[])
     }
   }
   printf(" \n");
+  if (nbody == 1) {
+    m = 0;
+    while (m < MAXFACE) {
+      printf(" Enter Face Index [0 = done]: ");
+      scanf("%d", &ifaces[m]);
+      if (ifaces[m] <= 0) break;
+      m++;
+    }
+    printf(" \n");
+    if (m > 0) {
+      printf(" Enter new angle, relSide & relSag: ");
+      scanf(" %lf %lf %lf", &params[2], &params[0], &params[1]);
+      printf(" Using angle = %lf,  relSide = %lf,  relSag = %lf\n\n",
+             params[2], params[0], params[1]);
+      params[0] *= size;
+      params[1] *= size;
+      stat = EG_retessFaces(bodydata[0].tess, m, ifaces, params);
+      if (stat != EGADS_SUCCESS)
+        printf(" EG_retessFaces = %d\n", stat);
+    }
+  }
 
   /* create the WebViewer context */
   cntxt = wv_createContext(1, 30.0, 1.0, 10.0, eye, center, up);

@@ -1,5 +1,5 @@
 		EGADS: Engineering Geometry Aerospace Design System 
-					Rev 1.0
+					Rev 1.01
 
 
 1. Prerequisites
@@ -12,8 +12,8 @@ for Windows using various versions of Visual Studio and for MAC OSX at 64-bits.
 Any other configuration must be built from source (unless you are using a
 Debian variant of LINUX, such as Ubuntu, where there are available prebuilt
 packages as part of the LINUX distribution). Note that 6.5 is recommended but
-there are SBO robustness problems at 6.5.3, so currently ESP works best with
-6.5.2.
+there are SBO robustness problems at 6.5.3 and 6.5.4, so currently EGADS 
+works best with 6.5.2.
 
 	Another prerequisite is a WebGL/Websocket capable Browser. In general
 these include Mozilla's FireFox and Google Chrome. Apple's Safari works at

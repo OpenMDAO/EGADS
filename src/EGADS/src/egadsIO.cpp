@@ -20,6 +20,7 @@
 #include "egadsClasses.h"
 
 
+  extern "C" void EG_initOCC( );
   extern "C" int  EG_destroyTopology( egObject *topo );
 
   extern "C" int  EG_loadModel( egObject *context, int bflg, const char *name, 
@@ -434,6 +435,14 @@ EG_readAttrs(egObject *obj, int nattr, FILE *fp)
     attrs->attrs  = attr;
     obj->attrs    = attrs;
   }
+}
+
+
+void
+EG_initOCC()
+{
+  // allow for multi-threading 
+  Standard::SetReentrant(Standard_True);
 }
 
 
@@ -1071,4 +1080,3 @@ EG_saveModel(const egObject *model, const char *name)
 
   return EGADS_SUCCESS;
 }
-
