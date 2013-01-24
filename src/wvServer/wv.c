@@ -3,7 +3,7 @@
  *
  *		WV server-side functions
  *
- *      Copyright 2011-2012, Massachusetts Institute of Technology
+ *      Copyright 2011-2013, Massachusetts Institute of Technology
  *      Licensed under The GNU Lesser General Public License, version 2.1
  *      See http://www.opensource.org/licenses/lgpl-2.1.php
  *
@@ -13,9 +13,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#ifdef WIN32
+#include <Windows.h>
+#endif
 #include <unistd.h>
 
 #include "wsss.h"
+
 
   extern wv_sendBinaryData(void *, unsigned char *, int);
 

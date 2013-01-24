@@ -18,6 +18,7 @@
 #include "egadsTypes.h"
 #include "egadsInternals.h"
 #include "egadsTris.h"
+#include "emp.h"
 
 
 #define NOTFILLED	-1
@@ -69,6 +70,22 @@
   } connect;
 
 
+  /* structure to pass data to the thread for a block */
+  typedef struct {
+    void     *mutex;            /* the mutex or NULL for single thread */
+    long     master;            /* master thread ID */
+    int      end;               /* end of loop */
+    int      index;             /* current loop index */
+    /*@dependent@*/
+    int      *mark;             /* do the index or NULL (for all) */
+    egObject *tess;             /* Tessellation Object */
+    egObject *body;             /* Body Object to Tessellate */
+    /*@dependent@*/
+    egObject **faces;           /* Face Object list */
+    double   *params;           /* Tessellation parameters */
+  } EMPtess;
+
+
   extern int EG_getTolerance( const egObject *topo, double *tol );
   extern int EG_getBodyTopos( const egObject *body, /*@null@*/ egObject *src,
                                    int oclass, int *ntopo, egObject ***topos );
@@ -82,7 +99,7 @@
   extern int EG_invEvaluate( const egObject *geom, double *xyz, double *param, 
                              double *result );
                                  
-  extern int EG_tessellate( int outLevel, triStruct *ts );
+  extern int EG_tessellate( int outLevel, triStruct *ts, long tID );
   extern int EG_quadFill( const egObject *face, double *parms, int *elens, 
                           double *uv, int *npts, double **uvs, int *npat, 
                           int *pats, int **vpats );
@@ -1185,7 +1202,7 @@ EG_getTessFace(const egObject *tess, int index, int *len, const double **xyz,
 
 static int
 EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess, 
-            triStruct *ts, fillArea *fa)
+            triStruct *ts, fillArea *fa, long tID)
 {
   int      i, j, k, m, n, stat, nedge, nloop, oclass, mtype, or, np, degen;
   int      *senses, *sns, *lps, *tris, npts, ntot, ntri, sen, n_fig8, nd, st;
@@ -1208,8 +1225,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
                         &senses);
   if (stat != EGADS_SUCCESS) return stat;
 #ifdef DEBUG
-  printf(" Face %d: nLoop = %d   Range = %lf %lf  %lf %lf\n", 
-         iFace, nloop, range[0], range[1], range[2], range[3]);
+  printf("%lX Face %d: nLoop = %d   Range = %lf %lf  %lf %lf\n",
+         tID, iFace, nloop, range[0], range[1], range[2], range[3]);
 #endif
   ts->fIndex = iFace;
   ts->face   = face;
@@ -1226,8 +1243,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
     for (j = 0; j < nedge; j++) {
       k = EG_indexBodyTopo(body, edges[j]);
       if (k <= EGADS_SUCCESS) {
-        printf(" EGADS Error: Face %d -> Can not find Edge = %d!\n", 
-               iFace, k);
+        printf("%lX EGADS Error: Face %d -> Can not find Edge = %d!\n",
+               tID, iFace, k);
         return EGADS_NOTFOUND;
       }
       stat = EG_getTopology(edges[j], &geom, &oclass, &mtype, trange, &nd,
@@ -1242,7 +1259,7 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
   
   ntri = ntot-2 + 2*(nloop-1);
 #ifdef DEBUG
-  printf("    total points = %d,  total tris = %d\n", ntot, ntri);
+  printf("%lX:       total points = %d,  total tris = %d\n", tID, ntot, ntri);
 #endif
 
   /* get enough storage for the verts & boundary segs */
@@ -1307,8 +1324,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
     for (degen = ntot = j = 0; j < nedge; j++, n += or) {
       k = EG_indexBodyTopo(body, edges[n]);
       if (k <= EGADS_SUCCESS) {
-        printf(" EGADS Error: Face %d -> Can not find Edge = %d!\n", 
-               iFace, k);
+        printf("%lX EGADS Error: Face %d -> Can not find Edge = %d!\n",
+               tID, iFace, k);
         EG_free(lps);
         EG_free(uvs);
         return EGADS_NOTFOUND;
@@ -1335,8 +1352,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
         for (m = 0; m < npts-1; m++, np++) {
           stat = EG_getEdgeUV(face, edges[n], senses[n], tps[m], &uvs[2*np]);
           if (stat != EGADS_SUCCESS) {
-            printf(" EGADS Error: getEdgeUV+ = %d  for Face %d/%d, Edge = %d\n",
-                   stat, iFace, i+1, n+1);
+            printf("%lX EGADS Error: getEdgeUV+ = %d  for Face %d/%d, Edge = %d\n",
+                   tID, stat, iFace, i+1, n+1);
             EG_free(lps);
             EG_free(uvs);
             return stat;
@@ -1355,8 +1372,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
             ts->verts[np-1].index  = EG_indexBodyTopo(body, nds[0]);
             if (degen == 1) {
 #ifdef DEBUG
-              printf(" Face %d, Vertex %d: Node = %d is Degen!\n",
-                     iFace, np, ts->verts[np-1].index);
+              printf("%lX  Face %d, Vertex %d: Node = %d is Degen!\n",
+                     tID, iFace, np, ts->verts[np-1].index);
 #endif
               ts->verts[np-1].edge = -1;
               degen = 0;
@@ -1368,15 +1385,15 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
           ts->segs[np-1].edge       =  senses[n]*k;
           ts->segs[np-1].index      =  m+1;
 #ifdef DEBUG
-          printf("    %lf %lf\n", uvs[2*np  ], uvs[2*np+1]);
+          printf("%lX:         %lf %lf\n", tID, uvs[2*np  ], uvs[2*np+1]);
 #endif
         }
       } else {
         for (m = npts-1; m > 0; m--, np++) {
           stat = EG_getEdgeUV(face, edges[n], senses[n], tps[m], &uvs[2*np]);
           if (stat != EGADS_SUCCESS) {
-            printf(" EGADS Error: getEdgeUV- = %d  for Face %d/%d, Edge = %d\n",
-                   stat, iFace, i+1, n+1);
+            printf("%lX EGADS Error: getEdgeUV- = %d  for Face %d/%d, Edge = %d\n",
+                   tID, stat, iFace, i+1, n+1);
             EG_free(lps);
             EG_free(uvs);
             return stat;
@@ -1399,8 +1416,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
             }
             if (degen == 1) {
 #ifdef DEBUG
-              printf(" Face %d, Vertex %d: Node = %d is Degen!\n",
-                     iFace, np, ts->verts[np-1].index);
+              printf("%lX: Face %d, Vertex %d: Node = %d is Degen!\n",
+                     tID, iFace, np, ts->verts[np-1].index);
 #endif
               ts->verts[np-1].edge = -1;
               degen = 0;
@@ -1412,31 +1429,32 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
           ts->segs[np-1].edge       =  senses[n]*k;
           ts->segs[np-1].index      =  m;
 #ifdef DEBUG
-          printf("    %lf %lf\n", uvs[2*np  ], uvs[2*np+1]);
+          printf("%lX:          %lf %lf\n", tID, uvs[2*np  ], uvs[2*np+1]);
 #endif
         }
       }
 #ifdef DEBUG
-      printf("  **** End Edge %d sen = %d ****\n", k+1, sen);
+      printf("%lX **** End Edge %d sen = %d ****\n", tID, k+1, sen);
 #endif
       ntot += npts-1;
     }
     ts->segs[np-2].indices[1] = st;
     if (degen == 1) {
       if (ts->verts[st-1].edge != 0) {
-        printf(" EGADS Error: Degen setting w/ Face %d  Marker = %d %d %d\n",
-               iFace, ts->verts[st-1].type, ts->verts[st-1].edge, 
-                      ts->verts[st-1].index);
+        printf("%lX EGADS Error: Degen setting w/ Face %d  Marker = %d %d %d\n",
+               tID, iFace, ts->verts[st-1].type, ts->verts[st-1].edge,
+                           ts->verts[st-1].index);
       } else {
 #ifdef DEBUG
-        printf(" Face %d, Vertex %d: Node = %d is Degen!\n",
-               iFace, st, ts->verts[st-1].index);
+        printf("%lX Face %d, Vertex %d: Node = %d is Degen!\n",
+               tID, iFace, st, ts->verts[st-1].index);
 #endif
         ts->verts[st-1].edge = -1;
       }
     }
 #ifdef DEBUG
-    printf("  **** End Loop %d: nedge = %d  %d ****\n", i+1, nedge, ntot);
+    printf("%lX **** End Loop %d: nedge = %d  %d ****\n",
+           tID, i+1, nedge, ntot);
 #endif
     lps[i] = ntot;
   }
@@ -1454,13 +1472,13 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
   
   /* adjust for figure 8 configurations */
   if (n_fig8 != 0) {
-    printf(" EG_fillArea Warning: Face %d -> Found %d figure 8's!\n", 
-           iFace, n_fig8);
+    printf("%lX EG_fillArea Warning: Face %d -> Found %d figure 8's!\n",
+           tID, iFace, n_fig8);
     for (i = 0; i < n_fig8; i++) if (n+2*i == ntri) ntri = n;
   }
 #ifdef DEBUG  
-  printf("   EG_fillArea = %d (%d),  #loops = %d, or = %d,  #fig8 = %d\n", 
-         n, ntri, nloop, or, n_fig8);
+  printf("%lX:   EG_fillArea = %d (%d),  #loops = %d, or = %d,  #fig8 = %d\n", 
+         tID, n, ntri, nloop, or, n_fig8);
 #endif
          
   if (n != ntri) {
@@ -1482,8 +1500,8 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
         uvs[2*i+1] *= scl[j][1];
       }
       n = EG_fillArea(nloop, lps, uvs, tris, &n_fig8, 1, fa);
-      printf(" EGADS Internal: Face %d -> Renormalizing %d, ntris = %d (%d)!\n",
-             iFace, j, ntri, n);
+      printf("%lX EGADS Internal: Face %d -> Renormalizing %d, ntris = %d (%d)!\n",
+             tID, iFace, j, ntri, n);
       if (n == ntri) break;
     }
   }
@@ -1548,7 +1566,7 @@ EG_fillTris(egObject *body, int iFace, egObject *face, egObject *tess,
 
   /* enhance the tessellation */
 
-  stat = EG_tessellate(outLevel, ts);
+  stat = EG_tessellate(outLevel, ts, tID);
   if (stat == EGADS_SUCCESS) {
     /* set it in the tessellation structure */
     EG_updateTris(ts, btess, iFace);
@@ -3346,7 +3364,7 @@ EG_insertEdgeVerts(egObject *tess, int eIndex, int vIndex, int npts,
         pt1 = 0;
         pi1 = btess->tess1d[eIndex-1].nodes[0];
       }
-      if (pt2 == btess->tess1d[eIndex-1].npts-npts) {
+      if (pt2 == btess->tess1d[eIndex-1].npts) {
         pt2 = 0;
         pi2 = btess->tess1d[eIndex-1].nodes[1];
       }
@@ -3519,15 +3537,87 @@ EG_insertEdgeVerts(egObject *tess, int eIndex, int vIndex, int npts,
 }
 
 
-int
-EG_makeTessBody(egObject *object, double *params, egObject **tess)
+static void
+EG_tessThread(void *struc)
 {
-  int       j, stat, outLevel, nface;
+  int       index, stat;
+  long      ID;
   double    dist;
   triStruct tst;
   fillArea  fast;
-  egTessel  *btess;
-  egObject  *ttess, *context, **faces;
+  EMPtess   *tthread;
+  
+  tthread = (EMPtess *) struc;
+
+  /* get our identifier */
+  ID = EMP_ThreadID();
+
+  dist = fabs(tthread->params[2]);
+  if (dist > 30.0) dist = 30.0;
+  if (dist <  0.5) dist =  0.5;
+  tst.maxlen  = tthread->params[0];
+  tst.chord   = tthread->params[1];
+  tst.dotnrm  = cos(PI*dist/180.0);
+  tst.mverts  = tst.nverts = 0;
+  tst.verts   = NULL;
+  tst.mtris   = tst.ntris  = 0;
+  tst.tris    = NULL;
+  tst.msegs   = tst.nsegs  = 0;
+  tst.segs    = NULL;
+  tst.numElem = -1;
+  tst.hashTab = NULL;
+  
+  fast.pts    = NULL;
+  fast.segs   = NULL;
+  fast.front  = NULL;
+ 
+  /* look for work */
+  for (;;) {
+    
+    /* only one thread at a time here -- controlled by a mutex! */
+    if (tthread->mutex != NULL) EMP_LockSet(tthread->mutex);
+    if (tthread->mark == NULL) {
+      index = tthread->index;
+    } else {
+      for (index = tthread->index; index < tthread->end; index++) {
+        if (tthread->mark[index] == 0) continue;
+        break;
+      }
+    }
+    tthread->index = index+1;
+    if (tthread->mutex != NULL) EMP_LockRelease(tthread->mutex);
+    if (index >= tthread->end) break;
+    
+    /* do the work */
+    stat = EG_fillTris(tthread->body, index+1, tthread->faces[index],
+                       tthread->tess, &tst, &fast, ID);
+    if (stat != EGADS_SUCCESS)
+      printf(" EGADS Warning: Face %d -> EG_fillTris = %d (EG_makeTessBody)!\n",
+             index+1, stat);
+  }
+  
+  /* exhausted all work -- cleanup & exit */
+  if (tst.verts  != NULL) EG_free(tst.verts);
+  if (tst.tris   != NULL) EG_free(tst.tris);
+  if (tst.segs   != NULL) EG_free(tst.segs);
+  
+  if (fast.segs  != NULL) EG_free(fast.segs);
+  if (fast.pts   != NULL) EG_free(fast.pts);
+  if (fast.front != NULL) EG_free(fast.front);
+  
+  if (ID != tthread->master) EMP_ThreadExit();
+}
+
+
+int
+EG_makeTessBody(egObject *object, double *params, egObject **tess)
+{
+  int      i, j, stat, outLevel, nface, np;
+  void     **threads = NULL;
+  long     start;
+  egTessel *btess;
+  egObject *ttess, *context, **faces;
+  EMPtess  tthread;
 
   *tess = NULL;
   if (object == NULL)               return EGADS_NULLOBJ;
@@ -3607,46 +3697,64 @@ EG_makeTessBody(egObject *object, double *params, egObject **tess)
    btess->tess2d[j].npatch = 0;
   }
   btess->nFace = nface;
-
-  dist = fabs(params[2]);
-  if (dist > 30.0) dist = 30.0;
-  if (dist <  0.5) dist =  0.5;
-  tst.maxlen  = params[0];
-  tst.chord   = params[1];
-  tst.dotnrm  = cos(PI*dist/180.0);
-  tst.mverts  = tst.nverts = 0;
-  tst.verts   = NULL;
-  tst.mtris   = tst.ntris  = 0;
-  tst.tris    = NULL;
-  tst.msegs   = tst.nsegs  = 0;
-  tst.segs    = NULL;
-  tst.numElem = -1;
-  tst.hashTab = NULL;
   
-  fast.pts    = NULL;
-  fast.segs   = NULL;
-  fast.front  = NULL;
-
-  for (j = 0; j < nface; j++) {
-    stat = EG_fillTris(object, j+1, faces[j], ttess, &tst, &fast);
-    if (stat != EGADS_SUCCESS) 
-      printf(" EGADS Warning: Face %d -> EG_fillTris = %d (EG_makeTessBody)!\n",
-             j+1, stat);
+  /* set up for explicit multithreading */
+  tthread.mutex  = NULL;
+  tthread.master = EMP_ThreadID();
+  tthread.index  = 0;
+  tthread.end    = nface;
+  tthread.mark   = NULL;
+  tthread.tess   = ttess;
+  tthread.body   = object;
+  tthread.faces  = faces;
+  tthread.params = params;
+  
+  np = EMP_Init(&start);
+  if (outLevel > 1) printf("EMP NumProcs = %d!\n", np);
+  
+  if (np > 1) {
+    /* create the mutex to handle list synchronization */
+    tthread.mutex = EMP_LockCreate();
+    if (tthread.mutex == NULL) {
+      printf(" EMP Error: mutex creation = NULL!\n");
+      np = 1;
+    } else {
+      /* get storage for our extra threads */
+      threads = (void **) malloc((np-1)*sizeof(void *));
+      if (threads == NULL) {
+        EMP_LockDestroy(tthread.mutex);
+        np = 1;
+      }
+    }
   }
+
+  /* create the threads and get going! */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++) {
+      threads[i] = EMP_ThreadCreate(EG_tessThread, &tthread);
+      if (threads[i] == NULL)
+        printf(" EMP Error Creating Thread #%d!\n", i+1);
+    }
+  /* now run the thread block from the original thread */
+  EG_tessThread(&tthread);
+  
+  /* wait for all others to return */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++)
+      if (threads[i] != NULL) EMP_ThreadWait(threads[i]);
+
 #ifdef CHECK
   EG_checkTriangulation(btess);
 #endif
-    
-  /* cleanup */
 
-  if (tst.verts  != NULL) EG_free(tst.verts);
-  if (tst.tris   != NULL) EG_free(tst.tris);
-  if (tst.segs   != NULL) EG_free(tst.segs); 
-   
-  if (fast.segs  != NULL) EG_free(fast.segs);
-  if (fast.pts   != NULL) EG_free(fast.pts);
-  if (fast.front != NULL) EG_free(fast.front);
-  EG_free(faces); 
+  /* cleanup */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++)
+      if (threads[i] != NULL) EMP_ThreadDestroy(threads[i]);
+  if (tthread.mutex != NULL) EMP_LockDestroy(tthread.mutex);
+  if (threads != NULL) free(threads);
+  EG_free(faces);
+  printf("EMP Number of Seconds on Thread Block = %ld\n", EMP_Done(&start));
 
   return EGADS_SUCCESS;
 }
@@ -3655,13 +3763,14 @@ EG_makeTessBody(egObject *object, double *params, egObject **tess)
 int
 EG_remakeTess(egObject *tess, int nobj, egObject **objs, double *params)
 {
-  int       i, j, mx, stat, outLevel, iface, nface, hit;
-  int       *ed, *marker = NULL;
-  double    dist, save[3];
-  triStruct tst;
-  fillArea  fast;
-  egObject  *context, *object, **faces;
-  egTessel  *btess;
+  int      i, j, mx, stat, outLevel, iface, nface, hit, np;
+  int      *ed, *marker = NULL;
+  void     **threads = NULL;
+  long     start;
+  double   save[3];
+  egObject *context, *object, **faces;
+  egTessel *btess;
+  EMPtess  tthread;
 
   if (tess == NULL)                 return EGADS_NULLOBJ;
   if (tess->magicnumber != MAGIC)   return EGADS_NOTOBJ;
@@ -3787,27 +3896,6 @@ EG_remakeTess(egObject *tess, int nobj, egObject **objs, double *params)
   }
   if (marker == NULL) return EGADS_SUCCESS;
  
-  /* do faces */
-  
-  dist = fabs(params[2]);
-  if (dist > 30.0) dist = 30.0;
-  if (dist <  0.5) dist =  0.5;
-  tst.maxlen  = params[0];
-  tst.chord   = params[1];
-  tst.dotnrm  = cos(PI*dist/180.0);
-  tst.mverts  = tst.nverts = 0;
-  tst.verts   = NULL;
-  tst.mtris   = tst.ntris  = 0;
-  tst.tris    = NULL;
-  tst.msegs   = tst.nsegs  = 0;
-  tst.segs    = NULL;
-  tst.numElem = -1;
-  tst.hashTab = NULL;
-  
-  fast.pts    = NULL;
-  fast.segs   = NULL;
-  fast.front  = NULL;
-  
   stat = EG_getBodyTopos(object, NULL, FACE, &nface, &faces);
   if (stat != EGADS_SUCCESS) {
     printf(" EGADS Error: EG_getBodyTopos = %d (EG_remakeTess)!\n",
@@ -3815,7 +3903,7 @@ EG_remakeTess(egObject *tess, int nobj, egObject **objs, double *params)
     EG_free(marker);
     return stat;
   }
-
+  /* cleanup old Face tessellations */
   for (j = 0; j < btess->nFace; j++) {
     if (marker[j] == 0) continue;
     
@@ -3833,25 +3921,66 @@ EG_remakeTess(egObject *tess, int nobj, egObject **objs, double *params)
     btess->tess2d[j].tric   = NULL;
     btess->tess2d[j].npts   = 0;
     btess->tess2d[j].ntris  = 0;
-  
-    stat = EG_fillTris(object, j+1, faces[j], tess, &tst, &fast);
-    if (stat != EGADS_SUCCESS) 
-      printf(" EGADS Warning: Face %d -> EG_fillTris = %d (EG_makeTessBody)!\n",
-             j+1, stat);
   }
+
+  /* set up for explicit multithreading */
+  tthread.mutex  = NULL;
+  tthread.master = EMP_ThreadID();
+  tthread.index  = 0;
+  tthread.end    = btess->nFace;
+  tthread.mark   = marker;
+  tthread.tess   = tess;
+  tthread.body   = object;
+  tthread.faces  = faces;
+  tthread.params = params;
+  
+  np = EMP_Init(&start);
+  if (outLevel > 1) printf("EMP NumProcs = %d!\n", np);
+  
+  if (np > 1) {
+    /* create the mutex to handle list synchronization */
+    tthread.mutex = EMP_LockCreate();
+    if (tthread.mutex == NULL) {
+      printf(" EMP Error: mutex creation = NULL!\n");
+      np = 1;
+    } else {
+      /* get storage for our extra threads */
+      threads = (void **) malloc((np-1)*sizeof(void *));
+      if (threads == NULL) {
+        EMP_LockDestroy(tthread.mutex);
+        np = 1;
+      }
+    }
+  }
+  
+  /* create the threads and get going! */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++) {
+      threads[i] = EMP_ThreadCreate(EG_tessThread, &tthread);
+      if (threads[i] == NULL)
+        printf(" EMP Error Creating Thread #%d!\n", i+1);
+    }
+  /* now run the thread block from the original thread */
+  EG_tessThread(&tthread);
+  
+  /* wait for all others to return */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++)
+      if (threads[i] != NULL) EMP_ThreadWait(threads[i]);
+  
 #ifdef CHECK
   EG_checkTriangulation(btess);
 #endif
-
-  if (tst.verts  != NULL) EG_free(tst.verts);
-  if (tst.tris   != NULL) EG_free(tst.tris);
-  if (tst.segs   != NULL) EG_free(tst.segs); 
-   
-  if (fast.segs  != NULL) EG_free(fast.segs);
-  if (fast.pts   != NULL) EG_free(fast.pts);
-  if (fast.front != NULL) EG_free(fast.front);
+  
+  /* cleanup */
+  if (threads != NULL)
+    for (i = 0; i < np-1; i++)
+      if (threads[i] != NULL) EMP_ThreadDestroy(threads[i]);
+  if (tthread.mutex != NULL) EMP_LockDestroy(tthread.mutex);
+  if (threads != NULL) free(threads);
   EG_free(faces);
   EG_free(marker);
+  printf("EMP Number of Seconds on Thread Block = %ld\n", EMP_Done(&start));
   
   return EGADS_SUCCESS;
 }

@@ -877,6 +877,30 @@ EG_diagTest(int t1, int iedg, int t2, triStruct *ts)
 
 
 static void
+EG_fillSides(int t1, double mindist, double emndist, triStruct *ts)
+{
+  int j, i0, i1, i2, t2;
+
+  i0 = ts->tris[t1].indices[0]-1;
+  i1 = ts->tris[t1].indices[1]-1;
+  i2 = ts->tris[t1].indices[2]-1;
+  ts->tris[t1].area = mindist;
+  if ((ts->verts[i0].type != FACE) || (ts->verts[i1].type != FACE) ||
+      (ts->verts[i2].type != FACE)) ts->tris[t1].area = emndist;
+
+  for (j = 0; j < 3; j++) {
+    ts->tris[t1].mid[j] = 0.0;
+    t2 = ts->tris[t1].neighbors[j]-1;
+    if (t2 < t1) continue;
+    i1 = ts->tris[t1].indices[sides[j][0]]-1;
+    i2 = ts->tris[t1].indices[sides[j][1]]-1;
+    ts->tris[t1].mid[j] = DIST2(ts->verts[i1].xyz, ts->verts[i2].xyz);
+  }
+  
+}
+
+
+static void
 EG_fillMid(int t1, int close, triStruct *ts)
 {
   int    i0, i1, i2;
@@ -1961,32 +1985,25 @@ EG_removePhaseB(triStruct *ts)
 static int
 EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
 {
-  int    i, j, i0, i1, i2, t1, t2, side, split;
+  int    i, j, i1, i2, t1, t2, side, split;
   double cmp, d, dist, mindist, emndist, xyz[3];
 
-  for (split = t1 = 0; t1 < ts->ntris; t1++) ts->tris[t1].hit = 0;
   mindist = MAX(maxlen2, ts->devia2);
   emndist = MAX(mindist, ts->edist2);
   emndist = MAX(emndist, ts->eps2);
+  for (split = t1 = 0; t1 < ts->ntris; t1++) {
+    ts->tris[t1].hit = 0;
+    EG_fillSides(t1, mindist, emndist, ts);
+  }
 
   do {
     dist = 0.0;
     t1   = -1;
     for (i = 0; i < ts->ntris; i++) {
       if (ts->tris[i].hit != 0) continue;
-      i0  = ts->tris[i].indices[0]-1;
-      i1  = ts->tris[i].indices[1]-1;
-      i2  = ts->tris[i].indices[2]-1;
-      cmp = mindist;
-      if ((ts->verts[i0].type != FACE) || (ts->verts[i1].type != FACE) ||
-          (ts->verts[i2].type != FACE)) cmp = emndist;
-
+      cmp = ts->tris[i].area;
       for (j = 0; j < 3; j++) {
-        t2 = ts->tris[i].neighbors[j]-1;
-        if (t2 < i) continue;
-        i1 = ts->tris[i].indices[sides[j][0]]-1;
-        i2 = ts->tris[i].indices[sides[j][1]]-1;
-        d  = DIST2(ts->verts[i1].xyz, ts->verts[i2].xyz);
+        d = ts->tris[i].mid[j];
         if (d <= cmp) continue;
         if (d > dist) {
           t1   = i;
@@ -2011,6 +2028,10 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
       if (2*split > iter) break;
       EG_floodTriGraph(t1, FLOODEPTH, ts);
       EG_floodTriGraph(t2, FLOODEPTH, ts);
+      EG_fillSides(t1,          mindist, emndist, ts);
+      EG_fillSides(t2,          mindist, emndist, ts);
+      EG_fillSides(ts->ntris-2, mindist, emndist, ts);
+      EG_fillSides(ts->ntris-1, mindist, emndist, ts);
     } else {
       ts->tris[t1].hit = 1;
     }
@@ -2024,7 +2045,7 @@ EG_addSideDist(int iter, double maxlen2, int sideMid, triStruct *ts)
 /* fills the tessellate structure for the Face */
 
 int
-EG_tessellate(int outLevel, triStruct *ts)
+EG_tessellate(int outLevel, triStruct *ts, long tID)
 {
   int    n0, n1, n2, n3, stat[3];
   double dot, xvec[3];
@@ -2057,7 +2078,7 @@ EG_tessellate(int outLevel, triStruct *ts)
   if (trange[0] != 0.0) {
     ts->VoverU = trange[1]/trange[0];
 #ifdef REPORT
-    printf("         dv/du = %le\n", ts->VoverU);
+    printf("%lX:          dv/du = %le\n", tID, ts->VoverU);
 #endif
   }
   for (i = 0; i < ts->nsegs; i++) {
@@ -2076,8 +2097,8 @@ EG_tessellate(int outLevel, triStruct *ts)
   ts->edist2 /=   2.0;
   if (ts->eps2 < ts->devia2) ts->eps2 = ts->devia2;
 #ifdef DEBUG
-  printf(" Face %d: tolerances -> eps2 = %le, devia2 = %le, edist2 = %le\n",
-         ts->fIndex, ts->eps2, ts->devia2, ts->edist2);
+  printf("%lX Face %d: tolerances -> eps2 = %le, devia2 = %le, edist2 = %le\n",
+         tID, ts->fIndex, ts->eps2, ts->devia2, ts->edist2);
   EG_checkTess(ts);
 #endif
 
@@ -2096,8 +2117,8 @@ EG_tessellate(int outLevel, triStruct *ts)
     l    = ts->tris[i].indices[2]-1;
     dist = ts->orUV*AREA2D(ts->verts[j].uv, ts->verts[k].uv, ts->verts[l].uv);
     if (dist <= 0.0) {
-      printf(" Face %d: tri %d (of %d) area = %le\n", 
-             ts->fIndex, i, ts->ntris, dist);
+      printf("%lX Face %d: tri %d (of %d) area = %le\n",
+             tID, ts->fIndex, i, ts->ntris, dist);
       last++;
     }
     if (dist > 0.0)
@@ -2130,8 +2151,8 @@ EG_tessellate(int outLevel, triStruct *ts)
     lang = ts->accum;
     EG_swapTris(EG_diagTest, "diagonals", 1.0, ts);
 #ifdef REPORT
-    printf(" Start:   dotN = %le (%le),  UVang = %le\n",
-           ts->accum, ts->dotnrm, lang);
+    printf("%lX Start:   dotN = %le (%le),  UVang = %le\n",
+           tID, ts->accum, ts->dotnrm, lang);
 #endif
 
     /* add nodes -- try to get geometrically correct 
@@ -2150,8 +2171,8 @@ EG_tessellate(int outLevel, triStruct *ts)
       }
     } while (split > 0);
 #ifdef REPORT
-    printf(" Phase A: dotN = %le,  UVang = %le,  split = %d\n",
-           ts->accum, lang, count);
+    printf("%lX Phase A: dotN = %le,  UVang = %le,  split = %d\n",
+           tID, ts->accum, lang, count);
 #endif
 
     /* B) split internal tri sides that touch 2 edges */
@@ -2173,8 +2194,8 @@ EG_tessellate(int outLevel, triStruct *ts)
     EG_checkTess(ts);
 #endif
 #ifdef REPORT
-    printf(" Phase B: dotN = %le,  UVang = %le,  split = %d\n",
-           ts->accum, lang, count);
+    printf("%lX Phase B: dotN = %le,  UVang = %le,  split = %d\n",
+           tID, ts->accum, lang, count);
 #endif
 
     /* remove problem Phase B additions */
@@ -2188,8 +2209,8 @@ EG_tessellate(int outLevel, triStruct *ts)
       EG_checkTess(ts);
 #endif
 #ifdef REPORT
-      printf("          dotN = %le,  UVang = %le,  remove = %d\n",
-             ts->accum, lang, count);
+      printf("%lX          dotN = %le,  UVang = %le,  remove = %d\n",
+             tID, ts->accum, lang, count);
 #endif
     }
 
@@ -2209,8 +2230,8 @@ EG_tessellate(int outLevel, triStruct *ts)
       }
     } while (split > 0);
 #ifdef REPORT
-    printf(" Phase C: dotN = %le,  UVang = %le,  split = %d\n",
-           ts->accum, lang, count);
+    printf("%lX Phase C: dotN = %le,  UVang = %le,  split = %d\n",
+           tID, ts->accum, lang, count);
 #endif
     EG_hdestroy(ts);
 
@@ -2231,8 +2252,8 @@ EG_tessellate(int outLevel, triStruct *ts)
         i++;
       } while (split > 0);
 #ifdef REPORT
-      printf(" Phase D: dotN = %le,  UVang = %le,  split = %d\n",
-             ts->accum, lang, count);
+      printf("%lX Phase D: dotN = %le,  UVang = %le,  split = %d\n",
+             tID, ts->accum, lang, count);
 #endif
     }
 
@@ -2267,8 +2288,8 @@ EG_tessellate(int outLevel, triStruct *ts)
           lsplit = split;
         }
 #ifdef REPORT
-        printf(" Phase 1: dotN = %le,  UVang = %le,  split = %d,  %d\n",
-               ts->accum, lang, split, count);
+        printf("%lX Phase 1: dotN = %le,  UVang = %le,  split = %d,  %d\n",
+               tID, ts->accum, lang, split, count);
 #endif
         if (count > 6) break;
       } while (split != 0);
@@ -2307,8 +2328,8 @@ EG_tessellate(int outLevel, triStruct *ts)
           lsplit = split;
         }
 #ifdef REPORT
-        printf(" Phase 2: dotN = %le,  UVang = %le,  split = %d\n",
-               ts->accum, lang, split);
+        printf("%lX Phase 2: dotN = %le,  UVang = %le,  split = %d\n",
+               tID, ts->accum, lang, split);
 #endif
         if (count > 6) break;
       } while (split != 0);
@@ -2337,8 +2358,8 @@ EG_tessellate(int outLevel, triStruct *ts)
             stat[1]++;
           }
         }
-      printf("   Min angle     = %le (%le), OK = %d, too big = %d\n",
-             dot, ts->dotnrm, stat[0], stat[1]);
+      printf("%lX    Min angle     = %le (%le), OK = %d, too big = %d\n",
+             tID, dot, ts->dotnrm, stat[0], stat[1]);
 
       if (ts->chord > 0.0) {
         dist = 0.0;
@@ -2361,8 +2382,8 @@ EG_tessellate(int outLevel, triStruct *ts)
             if (ts->tris[i].close != 0) stat[0]++;
           }
         }
-        printf("   Max deviation = %le (%le), OK = %d, 2Big = %d (2Close = %d)\n",
-               sqrt(dist), ts->chord, stat[1], stat[2], stat[0]);
+        printf("%lX    Max deviation = %le (%le), OK = %d, 2Big = %d (2Close = %d)\n",
+               tID, sqrt(dist), ts->chord, stat[1], stat[2], stat[0]);
       }
    }
 
@@ -2373,7 +2394,7 @@ EG_tessellate(int outLevel, triStruct *ts)
     lang = ts->accum;
     EG_swapTris(EG_diagTest, "diagonals", 1.0, ts);
 #ifdef REPORT
-    printf(" Phase 3: dotN = %le,  UVang = %le\n", ts->accum, lang);
+    printf("%lX Phase 3: dotN = %le,  UVang = %le\n", tID, ts->accum, lang);
 #endif
 
   } else {
@@ -2398,7 +2419,7 @@ EG_tessellate(int outLevel, triStruct *ts)
         i++;
       } while (split > 0);
 #ifdef REPORT
-      printf(" XYZang = %le,   split = %d\n", ts->accum, count);
+      printf("%lX  XYZang = %le,   split = %d\n", tID, ts->accum, count);
 #endif
     }
 
@@ -2425,32 +2446,32 @@ EG_tessellate(int outLevel, triStruct *ts)
         }
         
       }
-    printf("   Max Side Len  = %le (%le), OK = %d, too big = %d\n",
-           sqrt(dist), ts->maxlen, k, l);
+    printf("%lX    Max Side Len  = %le (%le), OK = %d, too big = %d\n",
+           tID, sqrt(dist), ts->maxlen, k, l);
   }
 
   if (outLevel > 1) {
-    printf("Face %d: npts = %d,  ntris = %d\n", 
-           ts->fIndex, ts->nverts, ts->ntris);
+    printf("%lX Face %d: npts = %d,  ntris = %d\n", 
+           tID, ts->fIndex, ts->nverts, ts->ntris);
     if (ts->planar == 0) {
       if ((ts->accum < -0.1) || (lang > MAXANG)) 
-        printf("           **Tessellation problem**  %le  %le\n",
-               lang, ts->accum);
+        printf("%lX            **Tessellation problem**  %le  %le\n",
+               tID, lang, ts->accum);
     } else {
       if (lang > MAXANG) 
-        printf("           **Tessellation problem**  %le\n", lang);
+        printf("%lX            **Tessellation problem**  %le\n", tID, lang);
     }
   } else {
 #ifdef REPORT
-    printf("Face %d: npts = %d,  ntris = %d\n", 
-           ts->fIndex, ts->nverts, ts->ntris);
+    printf("%lX Face %d: npts = %d,  ntris = %d\n", 
+           tID, ts->fIndex, ts->nverts, ts->ntris);
     if (ts->planar == 0) {
       if ((ts->accum < -0.1) || (lang > MAXANG)) 
-        printf("           **Tessellation problem**  %le  %le\n",
-               lang, ts->accum);
+        printf("%lX            **Tessellation problem**  %le  %le\n",
+               tID, lang, ts->accum);
     } else {
       if (lang > MAXANG) 
-        printf("           **Tessellation problem**  %le\n", lang);
+        printf("%lX            **Tessellation problem**  %le\n", tID, ang);
     }
 #endif
   }

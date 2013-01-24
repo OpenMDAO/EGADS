@@ -17,6 +17,8 @@ EG_getInfo
 EG_copyObject
 EG_flipObject
 EG_close
+EG_context
+EG_outLevel
 EG_attributeAdd
 EG_attributeDel
 EG_attributeNum
@@ -49,6 +51,7 @@ EG_isEquivalent
 EG_makeTessGeom
 EG_getTessGeom
 EG_makeTessBody
+EG_remakeTess
 EG_getTessEdge
 EG_getTessFace
 EG_getTessQuads
@@ -68,3 +71,19 @@ EG_extrude
 EG_rotate
 EG_sweep
 EG_loft
+EMP_Init
+EMP_Done
+EMP_ThreadCreate
+EMP_ThreadExit
+EMP_ThreadWait
+EMP_ThreadSpin
+EMP_ThreadID
+EMP_ThreadDestroy
+EMP_LockCreate
+EMP_LockSet
+EMP_LockTest
+EMP_LockRelease
+EMP_LockDestroy
+EMP_for
+EMP_sum
+EMP_min

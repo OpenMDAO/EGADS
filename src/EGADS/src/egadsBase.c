@@ -23,20 +23,21 @@
 
 
   static char *EGADSprop[2] = {STR(EGADSPROP),
-                               "\nEGADSprop: Copyright 2011-2012 MIT. All Rights Reserved."};
+                               "\nEGADSprop: Copyright 2011-2013 MIT. All Rights Reserved."};
 
 
-  extern int EG_destroyGeometry( egObject *geom );
-  extern int EG_destroyTopology( egObject *topo );
-  extern int EG_copyGeometry( const egObject *geom, /*@null@*/ double *xform,
-                              egObject **copy );
-  extern int EG_copyTopology( const egObject *topo, /*@null@*/ double *xform,
-                              egObject **copy );
-  extern int EG_flipGeometry( const egObject *geom, egObject **copy );
-  extern int EG_flipTopology( const egObject *topo, egObject **copy );
-  extern int EG_getTopology( const egObject *topo, egObject **geom, 
-                             int *ocls, int *type, /*@null@*/ double *limits, 
-                             int *nobjs, egObject ***objs, int **senses );
+  extern void EG_initOCC();
+  extern int  EG_destroyGeometry( egObject *geom );
+  extern int  EG_destroyTopology( egObject *topo );
+  extern int  EG_copyGeometry( const egObject *geom, /*@null@*/ double *xform,
+                               egObject **copy );
+  extern int  EG_copyTopology( const egObject *topo, /*@null@*/ double *xform,
+                               egObject **copy );
+  extern int  EG_flipGeometry( const egObject *geom, egObject **copy );
+  extern int  EG_flipTopology( const egObject *topo, egObject **copy );
+  extern int  EG_getTopology( const egObject *topo, egObject **geom, 
+                              int *ocls, int *type, /*@null@*/ double *limits, 
+                              int *nobjs, egObject ***objs, int **senses );
 
 
 
@@ -199,6 +200,7 @@ EG_open(egObject **context)
   object->prev        = NULL;
   object->next        = NULL;
 
+  EG_initOCC();
   *context = object;
   return EGADS_SUCCESS;
 }
