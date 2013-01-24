@@ -1,6 +1,6 @@
 #MAC OS X 10.5 & up -- 64 bit:
 #
-EGREV   = 1.00
+EGREV   = 1.0.1
 
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L../../lib
 ifeq ($(CASREV),6.3)

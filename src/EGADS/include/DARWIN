@@ -1,6 +1,6 @@
 #MAC OS X 10.5 & up -- 32 bit:
 #
-EGREV   = 1.00
+EGREV   = 1.0.1
 
 INCS    = -I$(CASROOT)/inc -I$(CASROOT) -I../include
 LIBPATH = -L$(CASROOT)/$(CASARCH)/lib -L../../lib
